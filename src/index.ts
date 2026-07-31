@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { loadConfig, validateStartupConfig } from "./config.js";
 import { createDbConnection, runMigrations } from "./db/client.js";
