@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import path from "node:path";
 import { Agent, run, webSearchTool } from "@openai/agents";
 import { ConfigurationError, GenerationError } from "../errors.js";
+import { PACKAGE_ROOT } from "../paths.js";
 import {
   AgentPromptOutputSchema,
   type AgentPromptOutput,
@@ -10,7 +11,7 @@ import {
 
 // The 359-line behavioral spec for all 15 presets + 6 conflict-resolution
 // rules — carried over VERBATIM from the Python app (spec §11.2 #3).
-const INSTRUCTIONS_PATH = path.resolve("prompts/generate_music_prompt.md");
+const INSTRUCTIONS_PATH = path.join(PACKAGE_ROOT, "prompts", "generate_music_prompt.md");
 const AGENT_MODEL = "gpt-5.6";
 
 let cachedInstructions: string | undefined;

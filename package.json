@@ -8,7 +8,9 @@
     "keepsong-mcp": "dist/index.js"
   },
   "files": [
-    "dist"
+    "dist",
+    "prompts",
+    "drizzle"
   ],
   "engines": {
     "node": ">=20"

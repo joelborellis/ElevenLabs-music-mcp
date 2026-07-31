@@ -7,6 +7,7 @@ import { migrate as migrateSqlite } from "drizzle-orm/better-sqlite3/migrator";
 import { drizzle as drizzlePg, type NodePgDatabase } from "drizzle-orm/node-postgres";
 import { migrate as migratePg } from "drizzle-orm/node-postgres/migrator";
 import type { AppConfig } from "../config.js";
+import { PACKAGE_ROOT } from "../paths.js";
 import * as sqliteSchema from "./schema.sqlite.js";
 import * as pgSchema from "./schema.pg.js";
 
@@ -106,8 +107,8 @@ export async function createDbConnection(config: AppConfig): Promise<DbConnectio
  */
 export async function runMigrations(conn: DbConnection): Promise<void> {
   if (conn.kind === "sqlite") {
-    migrateSqlite(conn.db, { migrationsFolder: path.resolve("drizzle/sqlite") });
+    migrateSqlite(conn.db, { migrationsFolder: path.join(PACKAGE_ROOT, "drizzle", "sqlite") });
   } else {
-    await migratePg(conn.db, { migrationsFolder: path.resolve("drizzle/pg") });
+    await migratePg(conn.db, { migrationsFolder: path.join(PACKAGE_ROOT, "drizzle", "pg") });
   }
 }
