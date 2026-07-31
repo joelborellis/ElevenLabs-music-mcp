@@ -1,0 +1,50 @@
+{
+  "name": "keepsong-mcp",
+  "version": "0.1.0",
+  "description": "Keepsong MCP server — AI music generation pipeline (prompt / plan / render / finetune) over the Model Context Protocol",
+  "type": "module",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsx src/index.ts",
+    "dev:stdio": "tsx src/index.ts --stdio",
+    "start": "node dist/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:generate:sqlite": "drizzle-kit generate --config drizzle.sqlite.config.ts",
+    "db:generate:pg": "drizzle-kit generate --config drizzle.pg.config.ts",
+    "db:init": "tsx scripts/init-db.ts",
+    "smoke:plan": "tsx test/smoke/smoke-plan.ts",
+    "smoke:prompt": "tsx test/smoke/smoke-prompt.ts",
+    "smoke:compose-finetune": "tsx test/smoke/smoke-compose-finetune.ts"
+  },
+  "license": "UNLICENSED",
+  "private": true,
+  "dependencies": {
+    "@azure/identity": "^4.13.1",
+    "@azure/storage-blob": "^12.33.0",
+    "@elevenlabs/elevenlabs-js": "^2.60.0",
+    "@modelcontextprotocol/sdk": "^1.30.0",
+    "@openai/agents": "^0.14.1",
+    "better-sqlite3": "^13.0.2",
+    "dotenv": "^17.4.2",
+    "drizzle-orm": "^0.45.2",
+    "express": "^5.2.1",
+    "jose": "^6.2.5",
+    "pg": "^8.22.0",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.1.2",
+    "@types/pg": "^8.20.0",
+    "drizzle-kit": "^0.31.10",
+    "tsx": "^4.23.1",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.10"
+  }
+}

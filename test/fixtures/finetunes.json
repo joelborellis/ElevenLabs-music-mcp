@@ -1,0 +1,720 @@
+{
+    "finetunes": [
+        {
+            "id": "lh6n3z81aznqz0ohl9pn",
+            "name": "Rock Fran\u00e7ais",
+            "tags": [
+                "Pop",
+                "Rock",
+                "World",
+                "French Pop",
+                "Chanson",
+                "Pop Rock"
+            ],
+            "primary_genre": "Rock",
+            "model_id": "music_v2",
+            "created_at": "2026-07-21T19:07:31.817000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "v1hamfp8dn8witowl0ku",
+            "name": "Golden Hour Indie Guitar",
+            "tags": [
+                "Rock",
+                "Alternative Rock",
+                "Pop",
+                "Latin Alternative",
+                "K-Pop",
+                "Indie Rock"
+            ],
+            "primary_genre": "Indie",
+            "model_id": "music_v2",
+            "created_at": "2026-07-21T19:06:27.707000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "myhwwkx9utoqjzw27f6c",
+            "name": "Afro House Beats",
+            "tags": [
+                "Afrobeats",
+                "Afropop",
+                "Pop",
+                "Reggaeton",
+                "Latin Urban"
+            ],
+            "primary_genre": "World",
+            "model_id": "music_v2",
+            "created_at": "2026-07-21T13:27:41.092000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "aslj0pdvdods2agammwb",
+            "name": "Indie Dance",
+            "tags": [
+                "Electronic",
+                "House",
+                "Nu-Disco",
+                "Deep House",
+                "Indie Dance",
+                "Dance"
+            ],
+            "primary_genre": "Indie",
+            "model_id": "music_v2",
+            "created_at": "2026-07-21T13:22:52.615000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "mgvvvssqtnvoghqnciso",
+            "name": "Emo Trap",
+            "tags": [
+                "Hip Hop",
+                "Trap",
+                "Hip-Hop",
+                "Hip-Hop/Rap",
+                "Funk",
+                "Electronic"
+            ],
+            "primary_genre": "Trap",
+            "model_id": "music_v2",
+            "created_at": "2026-07-21T12:41:04.287000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "tr9up85ilbll68sx8s7y",
+            "name": "Wooden Slit Drum",
+            "tags": [
+                "Electronic",
+                "Drum and Bass",
+                "Techno",
+                "Minimal",
+                "Tech House"
+            ],
+            "primary_genre": "Ultility",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T20:49:00.887000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "vs645jaw0kcr5ei0rsjv",
+            "name": "Deep House Groove",
+            "tags": [
+                "Electronic",
+                "House",
+                "Funk",
+                "Tech House",
+                "Dance"
+            ],
+            "primary_genre": "House",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:51:03.473000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "suq4dir7rrlyldbl2hzq",
+            "name": "Reggaeton",
+            "tags": [
+                "Reggaeton",
+                "Latin Pop",
+                "Latin",
+                "Hip Hop",
+                "Latin Urban"
+            ],
+            "primary_genre": "Reggaeton",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:46:42.570000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "isbeh7g7hu3yntwv25af",
+            "name": "Arabic Groove",
+            "tags": [
+                "Electronic",
+                "Bongo Flava",
+                "Arabic Pop",
+                "Ra\u00ef"
+            ],
+            "primary_genre": "World",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:46:41.249000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "dnzdxqdeszfpxwry2pbe",
+            "name": "Baile Beats",
+            "tags": [
+                "Funk Carioca",
+                "Funk Brasileiro",
+                "Pop",
+                "Brazilian Funk",
+                "Trap Brasileiro"
+            ],
+            "primary_genre": "World",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:35:16.438000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "hs1ude6s5b5xecfqkeus",
+            "name": "Brazilian Funk",
+            "tags": [
+                "Funk Carioca",
+                "Funk Brasileiro",
+                "Brazilian Funk",
+                "Hip Hop",
+                "Latin"
+            ],
+            "primary_genre": "Phonk",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:35:13.830000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "sqwy9yr9rgik4fjq83lq",
+            "name": "Lofi Pulse",
+            "tags": [
+                "Lo-fi Hip Hop",
+                "Lo-fi",
+                "House",
+                "Alternative Rock",
+                "Chillout"
+            ],
+            "primary_genre": "Lofi",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:35:13.774000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "vqipbdqc1msstidmcusy",
+            "name": "Afro House Beats",
+            "tags": [
+                "Afrobeats",
+                "Reggaeton",
+                "Amapiano",
+                "Afro-pop",
+                "World Music"
+            ],
+            "primary_genre": "World",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:35:06.754000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "zhmmiqfkkv39avzbamxn",
+            "name": "'70s Cambodian Rock",
+            "tags": [
+                "Pop Rock",
+                "World Music",
+                "French Pop",
+                "Cambodian Rock",
+                "Rock"
+            ],
+            "primary_genre": "Rock",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:34:55.365000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "pqqhd6miiqq1sck8hxpo",
+            "name": "'80s Nu-Disco Revival",
+            "tags": [
+                "Rock",
+                "Pop Rock",
+                "French Pop",
+                "Synth-pop",
+                "Alternative Rock"
+            ],
+            "primary_genre": "Electronic",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T19:34:54.376000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "p1ywem2msdf5te27nvsq",
+            "name": "18th Century Symphony",
+            "tags": [
+                "Classical",
+                "Romantic",
+                "Contemporary Classical",
+                "Instrumental",
+                "Orchestral"
+            ],
+            "primary_genre": "Classical",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T12:03:39.427000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "c8gueokxdvc0websp3mh",
+            "name": "Relaxing Ambient",
+            "tags": [
+                "Ambient",
+                "Electronic",
+                "New Age",
+                "Dub",
+                "Lo-fi Hip Hop"
+            ],
+            "primary_genre": "Ambient",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T12:03:35.635000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "gduoyhnzn5nvb246gg7i",
+            "name": "Upbeat Pop",
+            "tags": [
+                "Pop",
+                "Pop Rock",
+                "Punjabi Pop",
+                "Indie Pop",
+                "Synth-pop"
+            ],
+            "primary_genre": "Pop",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T12:03:35.015000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "el6hpw7kwoqvxf6xixct",
+            "name": "Peak Energy",
+            "tags": [
+                "Rock",
+                "Pop Punk",
+                "Alternative Rock",
+                "Punk Rock",
+                "Hard Rock"
+            ],
+            "primary_genre": "Rock",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T12:03:34.221000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "pjrzgdgqqvyyukiukl7m",
+            "name": "High Energy House",
+            "tags": [
+                "Electronic",
+                "Pop",
+                "Dance",
+                "Dance-Pop",
+                "EDM"
+            ],
+            "primary_genre": "House",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T12:03:33.174000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "hrgo9qt4ebv9ondvrfby",
+            "name": "Percussive Rhythm",
+            "tags": [
+                "Electronic",
+                "Pop",
+                "Rock",
+                "Drum and Bass"
+            ],
+            "primary_genre": "Afrobeat",
+            "model_id": "music_v2",
+            "created_at": "2026-07-20T12:03:32.337000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "da3djkopsam0aiywt9pr",
+            "name": "Emotional Piano",
+            "tags": [
+                "Classical",
+                "Electronic",
+                "Ambient",
+                "Lo-fi",
+                "Techno",
+                "Minimalism"
+            ],
+            "primary_genre": "Classical",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:59.011000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "ycnbaxci6zvbfumryyjn",
+            "name": "Dark Cinematic",
+            "tags": [
+                "Electronic",
+                "Cinematic",
+                "Industrial",
+                "Drum & Bass",
+                "Techno",
+                "Dark Ambient"
+            ],
+            "primary_genre": "Electronic",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:57.209000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "kzyrnjd6p1wkctkwcndw",
+            "name": "Commercial Pop",
+            "tags": [
+                "Pop",
+                "Pop Rock",
+                "Holiday",
+                "Children's Music",
+                "Rock",
+                "Indie Pop"
+            ],
+            "primary_genre": "Pop",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:55.526000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "myxkfft8fgqlknydgc9j",
+            "name": "Cinematic Ambient Atmosphere",
+            "tags": [
+                "Electronic",
+                "Ambient",
+                "Cinematic",
+                "Industrial",
+                "Experimental",
+                "Dark Ambient"
+            ],
+            "primary_genre": "Ambient",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:53.791000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "slmgjlsj7you9jtua7rs",
+            "name": "Bass Techno",
+            "tags": [
+                "Electronic",
+                "Techno",
+                "Drum and Bass",
+                "House",
+                "Hard Techno",
+                "Industrial Techno"
+            ],
+            "primary_genre": "Electronic",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:51.238000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "p7uzmv4semqmck6dqlnh",
+            "name": "Hype Hip-Hop",
+            "tags": [
+                "Hip-Hop/Rap",
+                "Electronic",
+                "Hip Hop",
+                "Hip Hop/Rap",
+                "Hip-Hop",
+                "Latin Urban"
+            ],
+            "primary_genre": "Hip Hop",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:47.729000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "etmjawmxfo7j0rhjoh9b",
+            "name": "Melodic House And Techno",
+            "tags": [
+                "Electronic",
+                "Ambient",
+                "Amapiano",
+                "House",
+                "Deep House",
+                "Future House"
+            ],
+            "primary_genre": "Melodic Tech House",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:46.359000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "cba2y9ttpddnmakxzwps",
+            "name": "Metal",
+            "tags": [
+                "Rock",
+                "Metal",
+                "Punk",
+                "Hard Rock",
+                "Alternative Rock",
+                "Pop Rock"
+            ],
+            "primary_genre": "Metal",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:44.099000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "rqjgx0tz2gjqz9bkewmb",
+            "name": "Jazz Hop",
+            "tags": [
+                "Funk",
+                "Hip Hop",
+                "Jazz",
+                "Electronic",
+                "Hip-Hop"
+            ],
+            "primary_genre": "Jazz",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:43.471000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "i7kba5otukdneth5zwcs",
+            "name": "Emo Trap",
+            "tags": [
+                "Hip Hop",
+                "Hip-Hop/Rap",
+                "Funk",
+                "Hip-Hop",
+                "Electronic",
+                "Trap"
+            ],
+            "primary_genre": "Trap",
+            "model_id": "music_v2",
+            "created_at": "2026-07-19T00:37:40.804000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "xiuhw6zlkhnmecbjoa1m",
+            "name": "Country",
+            "tags": [
+                "Pop",
+                "Rock",
+                "Christian & Gospel",
+                "Pop Rock",
+                "Country",
+                "Folk"
+            ],
+            "primary_genre": "Country",
+            "model_id": "music_v2",
+            "created_at": "2026-07-18T21:55:48.765000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "voz6njhbsmhfoxlq4iiz",
+            "name": "Superhero Swell inspired by Stan Lee",
+            "tags": [
+                "cinematic",
+                "heroic",
+                "orchestral swells",
+                "epic",
+                "Classical"
+            ],
+            "primary_genre": "Orchestral",
+            "model_id": "music_v2",
+            "created_at": "2026-07-18T19:41:28.372000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "idlsxb9wbecwwrfdsctg",
+            "name": "Electronic Rock",
+            "tags": [
+                "Rock",
+                "Heavy Metal",
+                "Pop",
+                "Mandopop",
+                "Alternative Rock"
+            ],
+            "primary_genre": "Rock",
+            "model_id": "music_v2",
+            "created_at": "2026-07-17T21:13:31.287000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "ymhinvkahlf4oath9qfu",
+            "name": "Golden Age Mambo inspired by Celia Cruz",
+            "tags": [
+                "Salsa",
+                "Latin",
+                "Tropical",
+                "Afro-Cuban",
+                "Salsa Dura"
+            ],
+            "primary_genre": "World",
+            "model_id": "music_v2",
+            "created_at": "2026-07-17T16:00:06.868000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "g6jrtolcvctpxfjtzt0b",
+            "name": "New York Salsa inspired by Celia Cruz",
+            "tags": [
+                "Salsa",
+                "Latin",
+                "Afro-Cuban",
+                "Tropical",
+                "Salsa Dura"
+            ],
+            "primary_genre": "other",
+            "model_id": "music_v2",
+            "created_at": "2026-07-17T15:55:14.146000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        },
+        {
+            "id": "psgsvdptlafmrwao54vr",
+            "name": "Retro Fanfare inspired by Stan Lee",
+            "tags": [
+                "Jazz",
+                "Soundtrack",
+                "Marching Band",
+                "Show Tune"
+            ],
+            "primary_genre": "other",
+            "model_id": "music_v2",
+            "created_at": "2026-07-17T15:08:36.932000Z",
+            "visibility": "public",
+            "created_by": "elevenlabs",
+            "status": "completed",
+            "training_progress": 1.0,
+            "failure_reason": null
+        }
+    ],
+    "next_cursor": null,
+    "has_more": false
+}

@@ -1,0 +1,7 @@
+node_modules/
+dist/
+.env
+data/
+output/
+*.tsbuildinfo
+test/smoke/last-smoke-output.mp3

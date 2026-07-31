@@ -1,0 +1,102 @@
+{
+  "plan_mode": {
+    "title": "Indie Sunrise",
+    "chunks": [
+      {
+        "text": "[Intro]",
+        "positive_styles": [
+          "95 bpm",
+          "indie pop",
+          "live band feel",
+          "clean electric guitar riff",
+          "minimal instrumentation",
+          "light hi-hat tap"
+        ],
+        "negative_styles": [
+          "full band",
+          "vocals",
+          "heavy bass",
+          "heavy reverb"
+        ],
+        "duration_ms": 4000,
+        "context_adherence": "high"
+      },
+      {
+        "text": "[Verse 1]\nEmpty street starts to bloom,\nchasing shadows from the room.",
+        "positive_styles": [
+          "95 bpm",
+          "warm male vocal",
+          "authentic delivery",
+          "steady bassline enters",
+          "simple drum groove",
+          "light rhodes keyboard chords"
+        ],
+        "negative_styles": [
+          "shouting",
+          "complex harmonies",
+          "distorted guitar"
+        ],
+        "duration_ms": 7000,
+        "context_adherence": "high"
+      },
+      {
+        "text": "[Chorus]\nOh, the sun is breaking through.",
+        "positive_styles": [
+          "95 bpm",
+          "uplifting energy",
+          "brighter vocal tone",
+          "fuller drum pattern with crash cymbal",
+          "more active guitar strumming",
+          "resolute feel"
+        ],
+        "negative_styles": [
+          "minimalist",
+          "slow tempo",
+          "somber mood"
+        ],
+        "duration_ms": 5000,
+        "context_adherence": "high"
+      },
+      {
+        "text": "[Outro]",
+        "positive_styles": [
+          "95 bpm",
+          "clean final chord",
+          "resolute ending",
+          "bass and drums stop together",
+          "guitar note sustains and fades"
+        ],
+        "negative_styles": [
+          "long fade out",
+          "abrupt cut",
+          "vocals"
+        ],
+        "duration_ms": 3000,
+        "context_adherence": "high"
+      }
+    ]
+  },
+  "with_title": {
+    "title": "Epic Battle Theme",
+    "chunks": [
+      {
+        "text": "[Intro]",
+        "positive_styles": ["epic", "cinematic", "orchestral", "building tension", "strings"],
+        "negative_styles": ["percussion", "lo-fi", "ambient"],
+        "duration_ms": 5000,
+        "context_adherence": "high"
+      }
+    ]
+  },
+  "prompt_mode": {
+    "title": "Prompt Mode Track",
+    "prompt": "A short, upbeat 8-second bright pop-electro hook at 120 BPM in E major.",
+    "music_length_ms": 8000,
+    "model_id": "music_v2",
+    "force_instrumental": true,
+    "with_timestamps": false,
+    "store_for_inpainting": false,
+    "sign_with_c2pa": false,
+    "output_format": "mp3_44100_128"
+  }
+}

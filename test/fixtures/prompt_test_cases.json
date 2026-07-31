@@ -1,0 +1,61 @@
+{
+  "default": {
+    "project_blueprint": "ad_brand_fast_hook",
+    "sound_profile": "bright_pop_electro",
+    "delivery_and_control": "balanced_studio",
+    "instrumental_only": false,
+    "user_narrative": "Target length about 30 seconds"
+  },
+  "cases": [
+    {
+      "name": "Meditation/Wellness Track",
+      "payload": {
+        "project_blueprint": "meditation_sleep",
+        "sound_profile": "lofi_cozy",
+        "delivery_and_control": "exploratory_iterate",
+        "instrumental_only": true,
+        "user_narrative": "A peaceful morning routine, sipping tea while watching the sunrise."
+      }
+    },
+    {
+      "name": "Video Game Action Music",
+      "payload": {
+        "project_blueprint": "video_game_action_loop",
+        "sound_profile": "epic_cinematic",
+        "delivery_and_control": "balanced_studio",
+        "instrumental_only": true,
+        "user_narrative": "A climactic battle scene in a space opera, starships clashing among the stars."
+      }
+    },
+    {
+      "name": "Podcast Background",
+      "payload": {
+        "project_blueprint": "podcast_voiceover_loop",
+        "sound_profile": "lofi_cozy",
+        "delivery_and_control": "balanced_studio",
+        "instrumental_only": true,
+        "user_narrative": null
+      }
+    },
+    {
+      "name": "Personal Love Song with Narrative",
+      "payload": {
+        "project_blueprint": "standalone_song_mini",
+        "sound_profile": "indie_live_band",
+        "delivery_and_control": "balanced_studio",
+        "instrumental_only": false,
+        "user_narrative": "A love song for my partner Alex. We met at a book club discussing our favorite novels. They love autumn leaves and cozy sweaters. This is for our anniversary."
+      }
+    },
+    {
+      "name": "Ad brand fast hook",
+      "payload": {
+        "project_blueprint": "ad_brand_fast_hook",
+        "sound_profile": "bright_pop_electro",
+        "delivery_and_control": "balanced_studio",
+        "instrumental_only": false,
+        "user_narrative": null
+      }
+    }
+  ]
+}
