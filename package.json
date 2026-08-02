@@ -38,7 +38,7 @@
     "@elevenlabs/elevenlabs-js": "^2.60.0",
     "@modelcontextprotocol/sdk": "^1.30.0",
     "@openai/agents": "^0.14.1",
-    "better-sqlite3": "^13.0.2",
+    "better-sqlite3": "^12.4.1",
     "dotenv": "^17.4.2",
     "drizzle-orm": "^0.45.2",
     "express": "^5.2.1",
