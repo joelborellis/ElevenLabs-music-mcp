@@ -31,7 +31,10 @@ export const PromptGenerationRequestShape = {
   sound_profile: SoundProfileSchema,
   delivery_and_control: DeliveryAndControlSchema,
   instrumental_only: z.boolean().default(false),
-  user_narrative: z.string().nullish(),
+  user_narrative: z
+    .string()
+    .describe("Freeform story/occasion/people details; primary creative context when present")
+    .nullish(),
 };
 
 export const PromptGenerationRequestSchema = z.object(PromptGenerationRequestShape);

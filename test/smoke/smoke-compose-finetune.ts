@@ -18,6 +18,7 @@ import { writeFileSync } from "node:fs";
 import path from "node:path";
 import { loadConfig } from "../../src/config.js";
 import { ListFinetunesSchema } from "../../src/models/finetune.js";
+import { DEFAULT_MUSIC_MODEL } from "../../src/models/plan.js";
 import { rawComposeDetailed } from "../../src/services/elevenlabs.js";
 import { listFinetunes } from "../../src/services/finetuneService.js";
 
@@ -41,7 +42,8 @@ if (useFinetune) {
 const result = await rawComposeDetailed(config, {
   prompt: "A short, upbeat 8-second bright pop-electro hook at 120 BPM in E major.",
   music_length_ms: 8000,
-  model_id: "music_v2",
+  // music_v2-trained finetunes render fine on music_v2_5 (verified manually).
+  model_id: DEFAULT_MUSIC_MODEL,
   force_instrumental: true,
   store_for_inpainting: false,
   with_timestamps: true, // exercise the timestamps field of the response too

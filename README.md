@@ -11,8 +11,8 @@ from REST endpoints: [docs/mcp-tools.md](docs/mcp-tools.md).
 
 | MCP name | What it does |
 |---|---|
-| `generate_music_prompt` | Preset trio (+ optional narrative) → polished `music_v2` prompt, via `@openai/agents` (gpt-5.6 + web search, structured output) |
-| `generate_composition_plan` | Prompt text → section-by-section `music_v2` plan (`chunks`) |
+| `generate_music_prompt` | Preset trio (+ optional narrative) → polished music prompt, via `@openai/agents` (gpt-5.6 + web search, structured output) |
+| `generate_composition_plan` | Prompt text → section-by-section `music_v2_5` plan (`chunks`) |
 | `render_music` | Prompt **or** chunks → actual audio via ElevenLabs; optional `finetune_id`/`finetune_strength`; emits MCP progress notifications when the caller sends a `progressToken` |
 | `get_render_status` | Recover a render by id after a timeout/disconnect (`processing` / `complete` / `failed`) |
 | `list_finetunes` | ElevenLabs finetunes (TTL-cached; client-side `model_id`/completed filtering) |

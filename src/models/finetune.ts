@@ -29,11 +29,11 @@ export interface FinetuneListResponse {
 
 // MCP tool input — mirrors GET /finetunes query params.
 export const ListFinetunesShape = {
-  model_id: z.string().nullish(),
+  model_id: z.string().describe('Filter by model, e.g. "music_v2"').nullish(),
   visibility: FinetuneVisibilitySchema.nullish(),
   created_by: FinetuneCreatedBySchema.nullish(),
   include_incomplete: z.boolean().default(false),
-  cursor: z.string().nullish(),
+  cursor: z.string().describe("Pagination cursor from a previous response").nullish(),
   page_size: z.number().int().min(1).max(100).nullish(),
   refresh: z.boolean().default(false),
 };

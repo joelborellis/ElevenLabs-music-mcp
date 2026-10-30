@@ -78,14 +78,14 @@ describe("validateCompositionPlan", () => {
     expect(() => validateCompositionPlan({ chunks })).toThrow(/at index 0/);
   });
 
-  it("rejects totals above 600000ms, reporting the actual total", () => {
-    const chunks = Array.from({ length: 7 }, () => ({
+  it("rejects totals above 300000ms, reporting the actual total", () => {
+    const chunks = Array.from({ length: 4 }, () => ({
       text: "[Part]",
       positive_styles: [],
       negative_styles: [],
       duration_ms: 100_000,
     }));
-    expect(() => validateCompositionPlan({ chunks })).toThrow(/700000ms/);
+    expect(() => validateCompositionPlan({ chunks })).toThrow(/400000ms/);
   });
 });
 

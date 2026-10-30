@@ -1,7 +1,12 @@
 import type { AppConfig } from "../config.js";
 import { ConfigurationError } from "../config.js";
 import { GenerationError } from "../errors.js";
-import type { Chunk, CompositionPlanResponse, PlanGenerationRequest } from "../models/plan.js";
+import {
+  DEFAULT_MUSIC_MODEL,
+  type Chunk,
+  type CompositionPlanResponse,
+  type PlanGenerationRequest,
+} from "../models/plan.js";
 import { getElevenLabsClient } from "./elevenlabs.js";
 
 const DEFAULT_MUSIC_LENGTH_MS = 30_000;
@@ -46,10 +51,10 @@ export async function generateCompositionPlan(
     const plan = await client.music.compositionPlan.create({
       prompt: request.prompt,
       musicLengthMs,
-      modelId: "music_v2",
+      modelId: DEFAULT_MUSIC_MODEL,
     });
 
-    // music_v2 returns { chunks }; the SDK deserializes wire snake_case to
+    // music_v2+ returns { chunks }; the SDK deserializes wire snake_case to
     // camelCase, so map back with the same plain 5-field copy the Python
     // service performs.
     const rawChunks = "chunks" in plan ? plan.chunks : [];

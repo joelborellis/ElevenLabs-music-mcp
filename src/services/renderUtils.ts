@@ -5,7 +5,7 @@ import type { RenderRequest } from "../models/render.js";
 import type { ComposeKwargs } from "./elevenlabs.js";
 
 const MIN_TOTAL_MS = 3_000;
-const MAX_TOTAL_MS = 600_000;
+const MAX_TOTAL_MS = 300_000; // ElevenLabs' 5-minute generation limit
 const MIN_CHUNK_MS = 3_000;
 
 /**

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { ChunkSchema } from "./plan.js";
+import { ChunkSchema, DEFAULT_MUSIC_MODEL } from "./plan.js";
 
 // Raw shape is what gets registered as the MCP tool inputSchema. The MCP SDK
 // wraps the shape in a plain z.object(), which cannot carry cross-field rules —
@@ -7,15 +7,15 @@ import { ChunkSchema } from "./plan.js";
 // enforce them.
 export const RenderRequestShape = {
   // --- Generation source: mutually exclusive (enforced by superRefine) ---
-  prompt: z.string().nullish(),
+  prompt: z.string().describe("Text prompt (text-prompt mode)").nullish(),
   chunks: z.array(ChunkSchema).default([]),
 
   // --- Prompt-mode only ---
-  music_length_ms: z.number().int().min(3000).max(600000).nullish(),
+  music_length_ms: z.number().int().min(3000).max(300000).nullish(),
 
   // --- compose_detailed passthrough params ---
-  model_id: z.string().default("music_v2"),
-  finetune_id: z.string().nullish(),
+  model_id: z.string().default(DEFAULT_MUSIC_MODEL),
+  finetune_id: z.string().describe("Finetune id from list_finetunes").nullish(),
   finetune_strength: z.number().min(0).max(1).nullish(),
   force_instrumental: z.boolean().default(false),
   store_for_inpainting: z.boolean().default(false),
@@ -23,10 +23,13 @@ export const RenderRequestShape = {
   sign_with_c2pa: z.boolean().default(false),
 
   // --- Query-style param ---
-  output_format: z.string().nullish(), // e.g. "mp3_44100_128"; omit to let the API choose
+  output_format: z
+    .string()
+    .describe('Audio format, e.g. "mp3_44100_128"; omit to let the API choose')
+    .nullish(),
 
   // --- Local only — NEVER sent to ElevenLabs ---
-  title: z.string().nullish(),
+  title: z.string().describe("Names the stored file; never sent to ElevenLabs").nullish(),
 };
 
 export const RenderRequestSchema = z

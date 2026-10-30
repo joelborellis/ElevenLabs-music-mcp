@@ -43,7 +43,7 @@ Every stage is independently callable — a client may skip straight to
 ## Tool: `generate_music_prompt`
 
 Turns a **three-choice preset selection** plus an optional freeform narrative
-into a polished text prompt for ElevenLabs' `music_v2` model. Internally runs
+into a polished text prompt for ElevenLabs' music models (`music_v2` / `music_v2_5`). Internally runs
 an OpenAI agent (gpt-5.6 with web search) constrained to structured output; the
 359-line system prompt in `prompts/generate_music_prompt.md` defines exactly
 how presets translate into musical direction.
@@ -96,7 +96,7 @@ performed.
 
 ## Tool: `generate_composition_plan`
 
-Turns a text prompt into a structured, section-by-section `music_v2`
+Turns a text prompt into a structured, section-by-section `music_v2_5`
 composition plan — a "recipe" of **chunks** the render stage can execute.
 Calls ElevenLabs' plan endpoint (free of credit cost, but rate-limited).
 
@@ -159,8 +159,8 @@ French rock style we found" makes it attach the `finetune_id` from an earlier
 |---|---|---|---|
 | `prompt` | string \| null | one of prompt/chunks | Text-prompt mode |
 | `chunks` | Chunk[] | one of prompt/chunks | Plan mode (same chunk shape as `generate_composition_plan` returns — you can pass its output straight through) |
-| `music_length_ms` | int 3000–600000 \| null | no | **Prompt mode only**; rejected when combined with `chunks` |
-| `model_id` | string | no (default `"music_v2"`) | |
+| `music_length_ms` | int 3000–300000 \| null | no | **Prompt mode only**; rejected when combined with `chunks` |
+| `model_id` | string | no (default `"music_v2_5"`) | `"music_v2"` also works. `music_v2`-trained finetunes work with either model |
 | `finetune_id` | string \| null | no | From `list_finetunes`; steers the style with a custom-trained model. Works in both modes |
 | `finetune_strength` | number 0.0–1.0 \| null | no | Only valid together with `finetune_id`; ElevenLabs defaults to 1.0 (full strength) |
 | `force_instrumental` | boolean | no (default `false`) | Guarantees instrumental output (prompt mode) |
@@ -176,7 +176,7 @@ French rock style we found" makes it attach the `finetune_id` from an earlier
 3. `finetune_strength` requires `finetune_id`.
 
 **Plan-mode validation** (prompt mode is validated by ElevenLabs itself):
-at least one chunk; every chunk ≥ 3000ms; total duration 3000–600000ms.
+at least one chunk; every chunk ≥ 3000ms; total duration 3000–300000ms (ElevenLabs' 5-minute limit).
 
 ### Progress notifications
 

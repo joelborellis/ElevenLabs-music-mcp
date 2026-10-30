@@ -69,7 +69,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     {
       title: "Generate music prompt",
       description:
-        "Turn a three-choice preset selection (project blueprint, sound profile, delivery & control) plus an optional freeform narrative into a polished text prompt for ElevenLabs' music_v2 model. The result feeds generate_composition_plan or render_music. Sound profiles are product presets, unrelated to ElevenLabs finetunes.",
+        "Turn a three-choice preset selection (project blueprint, sound profile, delivery & control) plus an optional freeform narrative into a polished text prompt for ElevenLabs' music models (music_v2 / music_v2_5). The result feeds generate_composition_plan or render_music. Sound profiles are product presets, unrelated to ElevenLabs finetunes.",
       inputSchema: PromptGenerationRequestShape,
     },
     async (args) => {
@@ -95,7 +95,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     {
       title: "Generate composition plan",
       description:
-        "Turn a text prompt into a structured, section-by-section music_v2 composition plan (chunks with styles and durations). If music_length_ms is omitted, a duration mentioned in the prompt text (e.g. '30 seconds') is used, else 30s. The returned chunks feed render_music.",
+        "Turn a text prompt into a structured, section-by-section music_v2_5 composition plan (chunks with styles and durations). If music_length_ms is omitted, a duration mentioned in the prompt text (e.g. '30 seconds') is used, else 30s. The returned chunks feed render_music.",
       inputSchema: PlanGenerationRequestShape,
     },
     async (args) => {

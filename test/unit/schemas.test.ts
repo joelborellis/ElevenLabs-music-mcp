@@ -43,7 +43,7 @@ describe("RenderRequestSchema cross-field rules (ports the Python 422 cases)", (
 
   it("applies defaults (model_id, booleans, chunks)", () => {
     const parsed = RenderRequestSchema.parse({ prompt: "a song" });
-    expect(parsed.model_id).toBe("music_v2");
+    expect(parsed.model_id).toBe("music_v2_5");
     expect(parsed.force_instrumental).toBe(false);
     expect(parsed.sign_with_c2pa).toBe(false);
     expect(parsed.chunks).toEqual([]);
@@ -68,7 +68,7 @@ describe("PlanGenerationRequestSchema", () => {
 });
 
 describe("Chunk passthrough (Pydantic extra='allow' parity)", () => {
-  it("preserves unknown future music_v2 fields", () => {
+  it("preserves unknown future music model fields", () => {
     const parsed = ChunkSchema.parse({
       text: "[Intro]",
       duration_ms: 5000,
