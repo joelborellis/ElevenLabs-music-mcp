@@ -23,15 +23,15 @@ failures apart:
 - `Validation Error: …` — bad input (the equivalent of the old 422s)
 - `Configuration Error: …` — the *server* is misconfigured (missing API key, missing prompt file)
 - `Generation Error: …` — the upstream generation itself failed
-- `Upstream Error (bad gateway): …` — ElevenLabs unreachable/failed during `list_finetunes` (preserves the Python app's unique 502 mapping)
+- `Upstream Error (bad gateway): …` — ElevenLabs unreachable/failed during `list_finetunes` or the finetune lookup in `generate_music_prompt` (preserves the Python app's unique 502 mapping)
 - `Internal Server Error: …` — anything unexpected
 
 ## Typical call sequence
 
 ```
-generate_music_prompt  →  generate_composition_plan  →  render_music  →  read keepsong://renders/{id}
-        (presets → prompt text)     (prompt → chunks)        ↑                    (audio bytes)
-                                          list_finetunes ────┘  (optional style steering)
+list_finetunes  →  generate_music_prompt  →  generate_composition_plan  →  render_music  →  read keepsong://renders/{id}
+ (pick a style)    (finetune + presets         (prompt → chunks)          (same finetune_id)       (audio bytes)
+                    → prompt text)
                                           get_render_status ←── (recovery if render_music times out)
 ```
 
@@ -42,23 +42,34 @@ Every stage is independently callable — a client may skip straight to
 
 ## Tool: `generate_music_prompt`
 
-Turns a **three-choice preset selection** plus an optional freeform narrative
-into a polished text prompt for ElevenLabs' music models (`music_v2` / `music_v2_5`). Internally runs
-an OpenAI agent (gpt-5.6 with web search) constrained to structured output; the
-359-line system prompt in `prompts/generate_music_prompt.md` defines exactly
-how presets translate into musical direction.
+Turns a **finetune** plus two presets and an optional freeform narrative into a
+polished text prompt for ElevenLabs' `music_v2_5` model. Internally runs an
+OpenAI agent (gpt-5.6 with web search) constrained to structured output; the
+system prompt in `prompts/generate_music_prompt.md` defines how the inputs
+translate into musical direction.
 
-> **Do not confuse** `sound_profile` (a hardcoded product preset used only
-> here) with ElevenLabs **finetunes** (server-side style models selected at
-> *render* time via `finetune_id`). They are unrelated.
+Each input owns a different part of the track:
+
+- **Finetune** (`finetune_id`) — the *sound*: genre, tempo, groove, harmony,
+  instrumentation, vocal character. The server looks the finetune up and hands
+  the agent its name, primary genre and tags; the agent derives the style from
+  those. Pick one with `list_finetunes` first.
+- **Project blueprint** — the *form*: use case, duration, looping, structure,
+  vocal mode, lyric plan.
+- **Delivery & control** — how *prescriptive* the prompt is, transitions, mix
+  aesthetic.
+- **Narrative** — lyrics, names, story and emotional intent, but never genre.
+
+Pass the returned `finetune_id` to `render_music` so the audio is rendered with
+the same style the prompt was written for.
 
 **Example prompt that triggers it:**
-> "I need music for a 30-second ad for my coffee brand — something bright,
-> poppy and electronic. It's for our spring campaign launch. Can you put
-> together a solid music prompt for that?"
+> "I need music for a 30-second ad for my coffee brand, in that Indie Dance
+> style we have. It's for our spring campaign launch. Can you put together a
+> solid music prompt for that?"
 
-(The model maps "30-second ad" → `ad_brand_fast_hook`, "bright, poppy,
-electronic" → `bright_pop_electro`, picks `balanced_studio` as the sensible
+(The model calls `list_finetunes`, picks the "Indie Dance" `id`, maps
+"30-second ad" → `ad_brand_fast_hook`, picks `balanced_studio` as the sensible
 default, and passes the campaign detail as `user_narrative`.)
 
 ### Input
@@ -66,18 +77,21 @@ default, and passes the campaign detail as `user_narrative`.)
 | Field | Type | Required | Notes |
 |---|---|---|---|
 | `project_blueprint` | enum | yes | `ad_brand_fast_hook` (30s ad) · `podcast_voiceover_loop` (60s instrumental bed) · `video_game_action_loop` (90s instrumental) · `meditation_sleep` (auto length, instrumental) · `standalone_song_mini` (90s song with sung lyrics) |
-| `sound_profile` | enum | yes | `bright_pop_electro` · `dark_trap_night` · `lofi_cozy` · `epic_cinematic` · `indie_live_band` |
+| `finetune_id` | string | yes | From `list_finetunes`; must be a completed finetune. Sets the genre/sound |
 | `delivery_and_control` | enum | yes | `exploratory_iterate` · `balanced_studio` (recommended default) · `blueprint_plan_first` · `live_one_take` · `isolation_stems` — controls how prescriptive the generated prompt is |
 | `instrumental_only` | boolean | no (default `false`) | `true` forces instrumental and strips all sung-lyrics references, overriding everything else |
-| `user_narrative` | string \| null | no | Freeform story/occasion/people details. When present it is **mandatory primary creative context**, not flavor — the agent may use web search to fetch URLs found in it. For `standalone_song_mini` only, a target length stated here (e.g. "about 30 seconds") overrides the 90s default |
+| `user_narrative` | string \| null | no | Freeform story/occasion/people details. When present it is **mandatory primary creative context** for story and emotion (never genre) — the agent may use web search to fetch URLs found in it. For `standalone_song_mini` only, a target length stated here (e.g. "about 30 seconds") overrides the 90s default |
 
 ### Output
 
 ```json
 {
-  "prompt": "Create a 30-second bright pop-electro ad ...",
-  "title": "Bright Brand Spark",            // 3–6 words
-  "description": "A 30-second bright ...",  // 1–2 sentences
+  "prompt": "Create a 30-second bright nu-disco ad spot at 122 BPM ...",
+  "title": "Spring Roast Groove",            // 3–6 words
+  "description": "A 30-second nu-disco ...",  // 1–2 sentences
+  "finetune_id": "lh6n3z81aznqz0ohl9pn",      // → render_music.finetune_id
+  "finetune_name": "Indie Dance",
+  "sound_profile": "indie_dance",             // slug sent to the agent
   "request_id": "uuid",
   "timestamp": "2026-07-30T17:58:00.000Z",
   "input_parameters": { ...the validated request echoed back... }
@@ -85,12 +99,17 @@ default, and passes the campaign detail as `user_narrative`.)
 ```
 
 `prompt` is what you feed into `generate_composition_plan` or `render_music`.
+The prompt, title and description describe the music only; they never mention
+the finetune or its name.
 
 ### Failure modes
 
-Missing system-prompt file → `Configuration Error` (deploy problem). Agent
-failure or malformed structured output → `Generation Error`. No retries are
-performed.
+Unknown or still-training finetune → `Validation Error`. ElevenLabs unreachable
+during the finetune lookup → `Upstream Error`, unless the finetune is already in
+the `list_finetunes` cache, in which case the prompt is generated from the
+cached name alone. Missing system-prompt file → `Configuration Error` (deploy
+problem). Agent failure or malformed structured output → `Generation Error`. No
+retries are performed.
 
 ---
 
@@ -218,6 +237,8 @@ would spend credits twice).
   "duration_ms": 8000,
   "composition_plan": { "chunks": [ … ] },   // as returned/adjusted by ElevenLabs
   "song_metadata": { "title": …, "genres": … },
+  "finetune_id": "lh6n3z81aznqz0ohl9pn",     // null when no finetune was used
+  "finetune_strength": null,
   "request_id": "uuid",
   "timestamp": "2026-07-30T…Z"
 }
@@ -256,15 +277,16 @@ instead of re-submitting and spending credits twice.)
 ## Tool: `list_finetunes`
 
 Lists ElevenLabs **finetunes** — custom-trained style models (e.g. "Rock
-Français") usable as `render_music`'s `finetune_id`. The server proxies this so
+Français") that set the sound for `generate_music_prompt` and `render_music`
+via `finetune_id`. The server proxies this so
 clients never hold the ElevenLabs API key.
 
 **Example prompt that triggers it:**
 > "What custom music styles do we have available? I'd love something with a
 > French rock feel for this track."
 
-(The model lists the finetunes, spots "Rock Français", and can carry its `id`
-into the next `render_music` call.)
+(The model lists the finetunes, spots "Rock Français", and carries its `id`
+into `generate_music_prompt` and then `render_music`.)
 
 ### Input
 

@@ -1,7 +1,7 @@
-import type { ElevenLabs } from "@elevenlabs/elevenlabs-js";
+import { ElevenLabsError, type ElevenLabs } from "@elevenlabs/elevenlabs-js";
 import type { AppConfig } from "../config.js";
 import { ConfigurationError } from "../config.js";
-import { UpstreamError } from "../errors.js";
+import { InvalidInputError, UpstreamError } from "../errors.js";
 import type {
   FinetuneListResponse,
   FinetuneSummary,
@@ -108,4 +108,55 @@ export async function listFinetunes(
     has_more: page.hasMore, // upstream, unfiltered page
     next_cursor: page.nextCursor,
   };
+}
+
+/**
+ * Look up a finetune already fetched by listFinetunes, with no network call.
+ * maxAgeMs bounds staleness; omit it to accept any cached page (used as the
+ * fallback when ElevenLabs is unreachable — a stale name beats no name).
+ */
+export function findCachedFinetune(id: string, maxAgeMs?: number): FinetuneSummary | undefined {
+  for (const page of cache.values()) {
+    if (maxAgeMs != null && Date.now() - page.fetchedAtMs >= maxAgeMs) continue;
+    const hit = page.finetunes.find((f) => f.id === id);
+    if (hit) return hit;
+  }
+  return undefined;
+}
+
+/**
+ * Resolve one finetune for prompt generation: fresh list cache first, else
+ * GET /finetunes/{id}. Unknown or not-yet-trained finetunes are caller errors.
+ */
+export async function getFinetune(config: AppConfig, id: string): Promise<FinetuneSummary> {
+  let finetune = findCachedFinetune(id, config.finetunesCacheTtlSeconds * 1000);
+  if (!finetune) {
+    const client = getElevenLabsClient(config); // throws ConfigurationError if key missing
+    try {
+      finetune = toSummary(await client.music.finetunes.get(id));
+    } catch (err) {
+      if (err instanceof ElevenLabsError && (err.statusCode === 404 || err.statusCode === 422)) {
+        throw new InvalidInputError(`Finetune not found: ${id}`);
+      }
+      const message = err instanceof Error ? err.message : String(err);
+      throw new UpstreamError(`ElevenLabs finetune lookup failed: ${message}`);
+    }
+  }
+  if (finetune.status !== "completed") {
+    throw new InvalidInputError(
+      `Finetune ${id} is not ready (status: ${finetune.status ?? "unknown"}).`,
+    );
+  }
+  return finetune;
+}
+
+/** "Rock Français" → "rock_francais": the sound_profile slug the system prompt expects. */
+export function finetuneSlug(name: string | null | undefined, fallback: string): string {
+  const slug = (name ?? "")
+    .normalize("NFKD")
+    .replace(/\p{M}/gu, "") // strip combining marks left by NFKD
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "_")
+    .replace(/^_+|_+$/g, "");
+  return slug || fallback;
 }

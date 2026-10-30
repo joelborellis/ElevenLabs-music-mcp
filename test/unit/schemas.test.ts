@@ -7,6 +7,7 @@ import { renders as pgRenders } from "../../src/db/schema.pg.js";
 import { ChunkSchema, PlanGenerationRequestSchema } from "../../src/models/plan.js";
 import { RenderRequestSchema } from "../../src/models/render.js";
 import { FinetuneSummarySchema } from "../../src/models/finetune.js";
+import { PromptGenerationRequestSchema } from "../../src/models/prompt.js";
 
 const fixtures = JSON.parse(
   readFileSync(path.resolve("test/fixtures/render_test_input.json"), "utf8"),
@@ -64,6 +65,21 @@ describe("PlanGenerationRequestSchema", () => {
   it("requires a non-empty prompt", () => {
     expect(PlanGenerationRequestSchema.safeParse({}).success).toBe(false);
     expect(PlanGenerationRequestSchema.safeParse({ prompt: "" }).success).toBe(false);
+  });
+});
+
+describe("PromptGenerationRequestSchema", () => {
+  const base = { project_blueprint: "ad_brand_fast_hook", delivery_and_control: "balanced_studio" };
+
+  it("requires a non-empty finetune_id", () => {
+    expect(PromptGenerationRequestSchema.safeParse(base).success).toBe(false);
+    expect(PromptGenerationRequestSchema.safeParse({ ...base, finetune_id: "" }).success).toBe(false);
+    expect(PromptGenerationRequestSchema.safeParse({ ...base, finetune_id: "ft_1" }).success).toBe(true);
+  });
+
+  it("no longer accepts the old fixed sound_profile presets in place of a finetune", () => {
+    const parsed = PromptGenerationRequestSchema.safeParse({ ...base, sound_profile: "lofi_cozy" });
+    expect(parsed.success).toBe(false);
   });
 });
 

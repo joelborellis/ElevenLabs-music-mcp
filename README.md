@@ -11,7 +11,7 @@ from REST endpoints: [docs/mcp-tools.md](docs/mcp-tools.md).
 
 | MCP name | What it does |
 |---|---|
-| `generate_music_prompt` | Preset trio (+ optional narrative) → polished music prompt, via `@openai/agents` (gpt-5.6 + web search, structured output) |
+| `generate_music_prompt` | Finetune (sets the sound) + blueprint and delivery presets (+ optional narrative) → polished music prompt, via `@openai/agents` (gpt-5.6 + web search, structured output) |
 | `generate_composition_plan` | Prompt text → section-by-section `music_v2_5` plan (`chunks`) |
 | `render_music` | Prompt **or** chunks → actual audio via ElevenLabs; optional `finetune_id`/`finetune_strength`; emits MCP progress notifications when the caller sends a `progressToken` |
 | `get_render_status` | Recover a render by id after a timeout/disconnect (`processing` / `complete` / `failed`) |
@@ -38,8 +38,9 @@ download/stream routes. The only non-MCP route is an unauthenticated `GET /healt
 - **Auth**: Entra ID bearer-JWT validation (`jose`, tenant JWKS, iss/aud/exp) in
   front of the Streamable HTTP transport. Defaults on when `ENVIRONMENT=production`;
   gate with `AUTH_ENABLED`. Uniform authorization (any valid tenant token → all tools).
-- The system prompt `prompts/generate_music_prompt.md` is a **verbatim** copy from
-  the Python app — do not paraphrase it; it is the behavioral spec for all presets.
+- The system prompt `prompts/generate_music_prompt.md` is the behavioral spec for
+  prompt generation: blueprint and delivery preset mappings, plus how the sound is
+  derived from the finetune the server looks up from `finetune_id`.
 
 ## Setup (local clone or fork)
 
@@ -189,7 +190,7 @@ always unauthenticated.
 ```bash
 npm test                 # offline suite (no network, no credits)
 npm run smoke:plan       # live ElevenLabs plan call (free)
-npm run smoke:prompt     # live OpenAI agent run
+npm run smoke:prompt     # live OpenAI agent run (FINETUNE_ID=<id>, else first completed finetune)
 npm run smoke:compose-finetune   # live render incl. finetune pass-through — COSTS CREDITS
 npx tsx test/smoke/smoke-mcp-e2e.ts  # full pipeline against a running server — COSTS CREDITS
 npx tsx scripts/inspect-db.ts        # read-only look at the configured Postgres

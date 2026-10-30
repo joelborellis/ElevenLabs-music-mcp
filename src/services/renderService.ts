@@ -28,6 +28,8 @@ export interface RenderResult {
   composition_plan: Record<string, unknown> | null;
   song_metadata: Record<string, unknown> | null;
   song_id: string | null;
+  finetune_id: string | null;
+  finetune_strength: number | null;
 }
 
 /** Stage vocabulary preserved from the Python WS path (spec §4.3). */
@@ -165,6 +167,8 @@ export async function render(
       composition_plan: compositionPlan,
       song_metadata: songMetadata,
       song_id: composed.songId,
+      finetune_id: request.finetune_id ?? null,
+      finetune_strength: request.finetune_strength ?? null,
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

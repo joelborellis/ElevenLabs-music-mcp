@@ -12,3 +12,6 @@ export class UpstreamError extends Error {}
 
 /** Invalid composition plan (the render stage's only expected/typed error). */
 export class PlanValidationError extends Error {}
+
+/** Caller-supplied input that parses but refers to something unusable (e.g. an unknown finetune). */
+export class InvalidInputError extends Error {}

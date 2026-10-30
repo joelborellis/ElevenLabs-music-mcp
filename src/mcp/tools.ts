@@ -41,6 +41,8 @@ function resultToResponse(result: RenderResult, requestId: string): RenderRespon
     duration_ms: result.duration_ms,
     composition_plan: result.composition_plan,
     song_metadata: result.song_metadata,
+    finetune_id: result.finetune_id,
+    finetune_strength: result.finetune_strength,
     request_id: requestId,
     timestamp: new Date().toISOString(),
   };
@@ -58,6 +60,8 @@ export function rowToResponse(row: RenderRow): RenderResponse {
     duration_ms: row.duration_ms,
     composition_plan: row.composition_plan,
     song_metadata: row.song_metadata,
+    finetune_id: row.finetune_id,
+    finetune_strength: row.finetune_strength,
     request_id: row.request_id ?? "",
     timestamp: row.created_at.toISOString(),
   };
@@ -69,16 +73,19 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     {
       title: "Generate music prompt",
       description:
-        "Turn a three-choice preset selection (project blueprint, sound profile, delivery & control) plus an optional freeform narrative into a polished text prompt for ElevenLabs' music models (music_v2 / music_v2_5). The result feeds generate_composition_plan or render_music. Sound profiles are product presets, unrelated to ElevenLabs finetunes.",
+        "Write a polished music_v2_5 text prompt from a finetune plus two presets and an optional freeform narrative. Pick a finetune with list_finetunes first: the finetune sets the genre/sound, the project blueprint sets the form (use case, length, structure, vocals) and delivery & control sets how prescriptive the prompt is. The result feeds generate_composition_plan or render_music — pass the returned finetune_id to render_music so the audio matches the prompt.",
       inputSchema: PromptGenerationRequestShape,
     },
     async (args) => {
       try {
-        const output = await generateMusicPrompt(args);
+        const output = await generateMusicPrompt(deps.config, args);
         const response: PromptGenerationResponse = {
           prompt: output.prompt,
           title: output.title,
           description: output.description,
+          finetune_id: output.finetune_id,
+          finetune_name: output.finetune_name,
+          sound_profile: output.sound_profile,
           request_id: randomUUID(),
           timestamp: new Date().toISOString(),
           input_parameters: args,
@@ -113,7 +120,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     {
       title: "Render music",
       description:
-        "Generate actual audio via ElevenLabs from EITHER a text prompt OR composition-plan chunks (never both). Optionally steer the style with a finetune_id from list_finetunes. Rendering can take from seconds to a few minutes; progress notifications are emitted when the call includes a progressToken. The returned id is durable — if the call times out or disconnects, poll get_render_status with it instead of re-submitting. Audio is retrieved via the keepsong://renders/{id} resource.",
+        "Generate actual audio via ElevenLabs from EITHER a text prompt OR composition-plan chunks (never both). Optionally steer the style with a finetune_id from list_finetunes; when the prompt came from generate_music_prompt, pass the same finetune_id it returned. Rendering can take from seconds to a few minutes; progress notifications are emitted when the call includes a progressToken. The returned id is durable — if the call times out or disconnects, poll get_render_status with it instead of re-submitting. Audio is retrieved via the keepsong://renders/{id} resource.",
       inputSchema: RenderRequestShape,
     },
     async (args, extra) => {

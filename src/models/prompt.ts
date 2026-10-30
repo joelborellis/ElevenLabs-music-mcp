@@ -1,20 +1,13 @@
 import { z } from "zod";
 
-// Three-choice preset enums — product-defined, unrelated to ElevenLabs finetunes.
+// Closed preset enums (blueprint = form, delivery = strictness/mix). The sound
+// itself comes from an ElevenLabs finetune, passed by id — see finetune_id.
 export const ProjectBlueprintSchema = z.enum([
   "ad_brand_fast_hook",
   "podcast_voiceover_loop",
   "video_game_action_loop",
   "meditation_sleep",
   "standalone_song_mini",
-]);
-
-export const SoundProfileSchema = z.enum([
-  "bright_pop_electro",
-  "dark_trap_night",
-  "lofi_cozy",
-  "epic_cinematic",
-  "indie_live_band",
 ]);
 
 export const DeliveryAndControlSchema = z.enum([
@@ -28,7 +21,10 @@ export const DeliveryAndControlSchema = z.enum([
 // Raw shape is what gets registered as the MCP tool inputSchema.
 export const PromptGenerationRequestShape = {
   project_blueprint: ProjectBlueprintSchema,
-  sound_profile: SoundProfileSchema,
+  finetune_id: z
+    .string()
+    .min(1)
+    .describe("Finetune id from list_finetunes; sets the sound. Pass the same id to render_music"),
   delivery_and_control: DeliveryAndControlSchema,
   instrumental_only: z.boolean().default(false),
   user_narrative: z
@@ -39,6 +35,24 @@ export const PromptGenerationRequestShape = {
 
 export const PromptGenerationRequestSchema = z.object(PromptGenerationRequestShape);
 export type PromptGenerationRequest = z.infer<typeof PromptGenerationRequestSchema>;
+
+// Resolved server-side from finetune_id; the agent derives genre detail from it.
+export interface FinetuneContext {
+  name: string;
+  primary_genre: string | null;
+  tags: string[];
+}
+
+// The payload actually sent to the agent (the keys prompts/generate_music_prompt.md expects).
+export interface AgentPromptInput {
+  project_blueprint: PromptGenerationRequest["project_blueprint"];
+  sound_profile: string; // slug of the finetune name
+  finetune_id: string;
+  finetune_context?: FinetuneContext;
+  delivery_and_control: PromptGenerationRequest["delivery_and_control"];
+  instrumental_only: boolean;
+  user_narrative?: string | null;
+}
 
 // Structured output the LLM agent is constrained to produce.
 export const AgentPromptOutputSchema = z.object({
@@ -52,6 +66,9 @@ export interface PromptGenerationResponse {
   prompt: string;
   title?: string | null;
   description?: string | null;
+  finetune_id: string; // pass to render_music
+  finetune_name?: string | null;
+  sound_profile: string; // slug derived from the finetune name
   request_id: string;
   timestamp: string; // ISO 8601
   input_parameters: PromptGenerationRequest;

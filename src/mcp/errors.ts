@@ -1,5 +1,11 @@
 import { ZodError } from "zod";
-import { ConfigurationError, GenerationError, PlanValidationError, UpstreamError } from "../errors.js";
+import {
+  ConfigurationError,
+  GenerationError,
+  InvalidInputError,
+  PlanValidationError,
+  UpstreamError,
+} from "../errors.js";
 
 export interface ToolErrorResult {
   [key: string]: unknown;
@@ -16,7 +22,7 @@ export function toToolError(err: unknown): ToolErrorResult {
   let text: string;
   if (err instanceof ConfigurationError) {
     text = `Configuration Error: ${err.message}`;
-  } else if (err instanceof PlanValidationError) {
+  } else if (err instanceof PlanValidationError || err instanceof InvalidInputError) {
     text = `Validation Error: ${err.message}`;
   } else if (err instanceof ZodError) {
     text = `Validation Error: ${err.issues.map((issue) => issue.message).join("; ")}`;

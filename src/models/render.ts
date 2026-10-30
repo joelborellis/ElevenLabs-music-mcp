@@ -70,6 +70,8 @@ export interface RenderResponse {
   duration_ms?: number | null;
   composition_plan?: Record<string, unknown> | null;
   song_metadata?: Record<string, unknown> | null;
+  finetune_id?: string | null; // style model applied, if any
+  finetune_strength?: number | null;
   request_id: string;
   timestamp: string; // ISO 8601
 }

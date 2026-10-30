@@ -1,8 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ConfigurationError } from "../../src/config.js";
-import { UpstreamError } from "../../src/errors.js";
+import { ElevenLabsError } from "@elevenlabs/elevenlabs-js";
+import { InvalidInputError, UpstreamError } from "../../src/errors.js";
 import { ListFinetunesSchema } from "../../src/models/finetune.js";
-import { clearFinetuneCache, listFinetunes } from "../../src/services/finetuneService.js";
+import {
+  clearFinetuneCache,
+  finetuneSlug,
+  getFinetune,
+  listFinetunes,
+} from "../../src/services/finetuneService.js";
 import { getElevenLabsClient } from "../../src/services/elevenlabs.js";
 import { makeTestConfig } from "../helpers.js";
 
@@ -11,6 +17,7 @@ vi.mock("../../src/services/elevenlabs.js", () => ({
 }));
 
 const listMock = vi.fn();
+const getMock = vi.fn();
 const mockedGetClient = vi.mocked(getElevenLabsClient);
 
 // SDK-shaped (camelCase) upstream page.
@@ -65,8 +72,9 @@ beforeEach(() => {
   vi.useFakeTimers();
   clearFinetuneCache();
   listMock.mockReset().mockResolvedValue(upstreamPage());
+  getMock.mockReset();
   mockedGetClient.mockReturnValue({
-    music: { finetunes: { list: listMock } },
+    music: { finetunes: { list: listMock, get: getMock } },
   } as unknown as ReturnType<typeof getElevenLabsClient>);
 });
 
@@ -131,5 +139,56 @@ describe("listFinetunes", () => {
       throw new ConfigurationError("ELEVENLABS_API_KEY is not configured.");
     });
     await expect(listFinetunes(config, request())).rejects.toBeInstanceOf(ConfigurationError);
+  });
+});
+
+describe("getFinetune", () => {
+  it("serves a fresh list-cache hit without calling get", async () => {
+    await listFinetunes(config, request());
+    const finetune = await getFinetune(config, "ft_done");
+    expect(finetune.name).toBe("Golden Hour Indie Guitar");
+    expect(getMock).not.toHaveBeenCalled();
+  });
+
+  it("calls get for an uncached id and maps the result", async () => {
+    getMock.mockResolvedValue({ ...upstreamPage().finetunes[0], id: "ft_other", name: "Indie Dance" });
+    const finetune = await getFinetune(config, "ft_other");
+    expect(getMock).toHaveBeenCalledWith("ft_other");
+    expect(finetune).toMatchObject({ id: "ft_other", name: "Indie Dance", primary_genre: "indie" });
+  });
+
+  it("refetches once the cached page is past the TTL", async () => {
+    await listFinetunes(config, request());
+    vi.advanceTimersByTime(301_000);
+    getMock.mockResolvedValue(upstreamPage().finetunes[0]);
+    await getFinetune(config, "ft_done");
+    expect(getMock).toHaveBeenCalledOnce();
+  });
+
+  it("maps a 404 to InvalidInputError", async () => {
+    getMock.mockRejectedValue(new ElevenLabsError({ message: "nope", statusCode: 404 }));
+    await expect(getFinetune(config, "ft_missing")).rejects.toThrow(InvalidInputError);
+  });
+
+  it("maps other failures to UpstreamError", async () => {
+    getMock.mockRejectedValue(new Error("network down"));
+    await expect(getFinetune(config, "ft_missing")).rejects.toBeInstanceOf(UpstreamError);
+  });
+
+  it("rejects a finetune that is still training", async () => {
+    await listFinetunes(config, request({ include_incomplete: true }));
+    await expect(getFinetune(config, "ft_training")).rejects.toThrow(/not ready/);
+  });
+});
+
+describe("finetuneSlug", () => {
+  it("lowercases, strips accents and joins words with underscores", () => {
+    expect(finetuneSlug("Rock Français", "ft_x")).toBe("rock_francais");
+    expect(finetuneSlug("80s Synthwave!", "ft_x")).toBe("80s_synthwave");
+  });
+
+  it("falls back to the id when the name is empty", () => {
+    expect(finetuneSlug(null, "ft_x")).toBe("ft_x");
+    expect(finetuneSlug(" !! ", "ft_x")).toBe("ft_x");
   });
 });
