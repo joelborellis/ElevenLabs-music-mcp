@@ -6,15 +6,23 @@
  *
  *   npm run dev          # in one terminal
  *   npx tsx test/smoke/smoke-mcp-e2e.ts [--url http://localhost:3000/mcp]
+ *
+ * Against an AUTH_ENABLED server, pass a user token via MCP_TOKEN (see
+ * docs/copilot-auth.md for getting one with `az account get-access-token`).
  */
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { StreamableHTTPClientTransport } from "@modelcontextprotocol/sdk/client/streamableHttp.js";
 
 const urlFlag = process.argv.indexOf("--url");
 const url = urlFlag !== -1 ? process.argv[urlFlag + 1]! : "http://localhost:3000/mcp";
+const token = process.env.MCP_TOKEN;
 
 const client = new Client({ name: "keepsong-smoke", version: "0.0.0" });
-await client.connect(new StreamableHTTPClientTransport(new URL(url)));
+await client.connect(
+  new StreamableHTTPClientTransport(new URL(url), {
+    requestInit: token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
+  }),
+);
 
 function firstText(result: { content?: unknown }): Record<string, unknown> {
   const content = result.content as Array<{ type: string; text?: string }>;

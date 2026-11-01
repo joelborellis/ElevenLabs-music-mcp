@@ -34,12 +34,36 @@ export interface AppConfig {
   // Entra ID auth
   authEnabled: boolean;
   entraTenantId: string | undefined;
-  entraAudience: string | undefined;
+  /** Accepted `aud` values: client id, api://<client-id>, and the Copilot SSO Application ID URI. */
+  entraAudiences: string[];
+  /** Delegated scope every token must carry in `scp`; undefined disables the check. */
+  entraRequiredScope: string | undefined;
+
+  // Exact origins allowed cross-origin (e.g. the Copilot widget host).
+  corsAllowedOrigins: string[];
 }
 
 function parseBool(value: string | undefined, fallback: boolean): boolean {
   if (value == null || value === "") return fallback;
   return ["1", "true", "yes", "on"].includes(value.trim().toLowerCase());
+}
+
+/** Comma-separated env value → trimmed, non-empty entries. */
+function parseList(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((item) => item.trim())
+    .filter(Boolean);
+}
+
+/**
+ * Blank/unset → access_as_user (so a copied .env.example never silently drops
+ * the check); "none" → no scope check.
+ */
+function parseScope(value: string | undefined): string | undefined {
+  const scope = value?.trim();
+  if (!scope) return "access_as_user";
+  return scope.toLowerCase() === "none" ? undefined : scope;
 }
 
 export class ConfigurationError extends Error {}
@@ -80,7 +104,9 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     // Auth defaults on in production, off in development; never applies to stdio.
     authEnabled: parseBool(env.AUTH_ENABLED, environment === "production"),
     entraTenantId: env.ENTRA_TENANT_ID || undefined,
-    entraAudience: env.ENTRA_AUDIENCE || undefined,
+    entraAudiences: parseList(env.ENTRA_AUDIENCE),
+    entraRequiredScope: parseScope(env.ENTRA_REQUIRED_SCOPE),
+    corsAllowedOrigins: parseList(env.CORS_ALLOWED_ORIGINS),
   };
 }
 
@@ -103,9 +129,9 @@ export function validateStartupConfig(config: AppConfig): void {
     }
   }
   if (config.transport === "http" && config.authEnabled) {
-    if (!config.entraTenantId || !config.entraAudience) {
+    if (!config.entraTenantId || config.entraAudiences.length === 0) {
       throw new ConfigurationError(
-        "AUTH_ENABLED requires ENTRA_TENANT_ID and ENTRA_AUDIENCE to be set.",
+        "AUTH_ENABLED requires ENTRA_TENANT_ID and ENTRA_AUDIENCE (comma-separated list) to be set.",
       );
     }
   }

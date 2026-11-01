@@ -19,7 +19,9 @@ export function makeTestConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     mcpPath: "/mcp",
     authEnabled: false,
     entraTenantId: undefined,
-    entraAudience: undefined,
+    entraAudiences: [],
+    entraRequiredScope: "access_as_user",
+    corsAllowedOrigins: [],
     ...overrides,
   };
 }

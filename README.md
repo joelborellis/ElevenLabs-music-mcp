@@ -35,9 +35,16 @@ download/stream routes. The only non-MCP route is an unauthenticated `GET /healt
   precedence, else managed identity). Metadata: SQLite (dev) or Postgres (prod,
   always TLS). Python-style `DATABASE_URL`s (`postgresql+asyncpg://...?ssl=require`)
   are normalized automatically.
-- **Auth**: Entra ID bearer-JWT validation (`jose`, tenant JWKS, iss/aud/exp) in
-  front of the Streamable HTTP transport. Defaults on when `ENVIRONMENT=production`;
-  gate with `AUTH_ENABLED`. Uniform authorization (any valid tenant token → all tools).
+- **Transport**: stateless Streamable HTTP — every `POST /mcp` gets its own
+  transport and server, so there are no session ids and any replica can serve any
+  request. Progress notifications still stream on the POST's SSE response.
+- **Auth**: Entra ID bearer-JWT validation (`jose`, tenant JWKS) in front of the
+  transport, built for Microsoft 365 Copilot's Entra SSO: v1 and v2 issuers,
+  several audiences (incl. the Teams-generated `api://auth-…` URI), a required
+  delegated scope (`access_as_user`), and CORS for the MCP Apps widget host.
+  Defaults on when `ENVIRONMENT=production`; gate with `AUTH_ENABLED`. Uniform
+  authorization (any valid tenant user → all tools). Setup:
+  [docs/copilot-auth.md](docs/copilot-auth.md).
 - The system prompt `prompts/generate_music_prompt.md` is the behavioral spec for
   prompt generation: blueprint and delivery preset mappings, plus how the sound is
   derived from the finetune the server looks up from `finetune_id`.
@@ -180,10 +187,12 @@ Claude Code one-liner:
 `claude mcp add --transport http keepsong http://localhost:3000/mcp`
 
 **Auth:** with `ENVIRONMENT=production`, Entra ID bearer auth defaults **on**
-and requires `ENTRA_TENANT_ID` + `ENTRA_AUDIENCE`; clients must then send a
-tenant JWT, e.g. `"headers": { "Authorization": "Bearer <token>" }` in the
-config above. For local development set `AUTH_ENABLED=false`. `GET /health` is
-always unauthenticated.
+and requires `ENTRA_TENANT_ID` + `ENTRA_AUDIENCE` (comma-separated list); clients
+must then send a user token carrying the `access_as_user` scope, e.g.
+`"headers": { "Authorization": "Bearer <token>" }` in the config above. For local
+development set `AUTH_ENABLED=false`. `GET /health` is always unauthenticated.
+To connect a Microsoft 365 Copilot agent (Entra SSO), follow
+[docs/copilot-auth.md](docs/copilot-auth.md).
 
 ## Tests
 
@@ -195,6 +204,59 @@ npm run smoke:compose-finetune   # live render incl. finetune pass-through — C
 npx tsx test/smoke/smoke-mcp-e2e.ts  # full pipeline against a running server — COSTS CREDITS
 npx tsx scripts/inspect-db.ts        # read-only look at the configured Postgres
 ```
+
+### Auth tests with MCP Inspector
+
+Checks the Entra ID auth end to end on your machine, with the Azure CLI standing
+in for Copilot's token store. Run these before connecting a Copilot agent: the
+server applies exactly the same checks to Copilot's tokens.
+
+**Prerequisites** — an Entra app registration with the `access_as_user` scope and
+the Azure CLI (`04b07795-8ddb-461a-bbee-02f9e1bf7b46`) as an authorized client
+application (see [docs/copilot-auth.md](docs/copilot-auth.md), step 2), and in `.env`:
+
+```bash
+AUTH_ENABLED=true
+ENTRA_TENANT_ID=<tenant-id>
+ENTRA_AUDIENCE=<client-id>,api://<client-id>
+```
+
+Restart `npm run dev`; the startup line should show
+`auth: Entra ID, 2 audience(s), scope: access_as_user`.
+
+**Get a token** (valid for about an hour):
+
+```bash
+az login --tenant <tenant-id>
+az account get-access-token --scope api://<client-id>/access_as_user --query accessToken -o tsv
+```
+
+**Connect** — `npx @modelcontextprotocol/inspector`, transport *Streamable HTTP*,
+URL `http://localhost:3000/mcp`. In the server's settings add a **custom header**
+`Authorization` = `Bearer <token>`. Leave *OAuth Settings* empty: this server only
+validates tokens, it doesn't run a sign-in flow.
+
+| # | Test | Expected |
+|---|---|---|
+| 1 | Connect **without** the header | Fails: `POST /mcp` → **401**. Inspector then tries OAuth discovery and Dynamic Client Registration (`/.well-known/…`, `/register`) and gets 404s — expected, ignore them |
+| 2 | Add the header and connect | Connects; `POST /mcp` → **200**, no `.well-known` requests |
+| 3 | Run `list_finetunes` (optionally a short `render_music`) | Returns results; render progress still streams |
+| 4 | Change one character of the token | **401** `invalid_token` |
+| 5 | Remove the token's audience from `ENTRA_AUDIENCE`, restart | **401** `unexpected "aud" claim value` — the error you'll see if Copilot's Teams-generated URI is ever missing. Restore it afterwards |
+| 6 | Wait for the token to expire (~1 h) | **401** `"exp" claim timestamp check failed` — get a new token |
+
+Every 401/403 states its reason in the response's `error.message` and in the
+server log. Without Inspector, the same check works with curl:
+
+```bash
+curl -i -X POST http://localhost:3000/mcp \
+  -H "Authorization: Bearer <token>" -H "Content-Type: application/json" \
+  -H "Accept: application/json, text/event-stream" \
+  -d '{"jsonrpc":"2.0","id":1,"method":"tools/list","params":{}}'
+```
+
+or run the full pipeline with auth on: `MCP_TOKEN=<token> npx tsx test/smoke/smoke-mcp-e2e.ts`
+(costs credits).
 
 Migrations: `npm run db:generate:sqlite` / `db:generate:pg` after editing
 `src/db/schema.*.ts` (keep both dialects mirrored — a unit test enforces it).
