@@ -29,14 +29,17 @@ failures apart:
 ## Typical call sequence
 
 ```
-list_finetunes  →  generate_music_prompt  →  generate_composition_plan  →  render_music  →  read keepsong://renders/{id}
- (pick a style)    (finetune + presets         (prompt → chunks)          (same finetune_id)       (audio bytes)
-                    → prompt text)
-                                          get_render_status ←── (recovery if render_music times out)
+list_finetunes  →  generate_music_prompt  →  start_render  →  get_render_status (poll)  →  play audio_url
+ (pick a style)    (finetune + presets → brief)  (same finetune_id;    (progress → song)         or read keepsong://renders/{id}
+                                                 returns id at once)
+                   generate_composition_plan     render_music = the blocking alternative for clients without a UI
+                   (optional: prompt → chunks, free)
 ```
 
 Every stage is independently callable — a client may skip straight to
-`render_music` with a hand-written prompt or hand-built chunks.
+`render_music` with a hand-written prompt or hand-built chunks. In Microsoft 365
+Copilot the same tools render the **Keepsong Studio card** (see the `ui://`
+resource below), and the card polls `get_render_status` by itself.
 
 ---
 
@@ -239,19 +242,51 @@ would spend credits twice).
   "song_metadata": { "title": …, "genres": … },
   "finetune_id": "lh6n3z81aznqz0ohl9pn",     // null when no finetune was used
   "finetune_strength": null,
+  "audio_url": "https://<public-base>/media/renders/1ece3fa7-…?exp=…&sig=…",  // signed, valid 1 hour
   "request_id": "uuid",
   "timestamp": "2026-07-30T…Z"
 }
 ```
 
-Note: `download_url`/`stream_url` are **MCP resource URIs**, not HTTP URLs —
-this deployment exposes audio exclusively through the resource (see below).
+Note: `download_url`/`stream_url` are **MCP resource URIs**, not HTTP URLs.
+`audio_url` is a short-lived signed HTTPS link for players that can't read MCP
+resources — the Copilot card's `<audio>` element — see `GET /media/renders/{id}`
+at the end of this document.
+
+---
+
+## Tool: `start_render`
+
+`render_music` without the wait: **identical inputs**, but the call returns as
+soon as the `processing` row exists and the render carries on in the
+background. This is what the Keepsong Studio card uses, so Copilot never blocks
+on a minutes-long call (or trips a gateway timeout). Prefer it whenever a card
+is shown; use `render_music` from clients that want to block.
+
+### Output
+
+```json
+{
+  "id": "1ece3fa7-…",                 // poll get_render_status with this
+  "status": "processing",
+  "request_id": "uuid",
+  "title": "Spring Roast Groove",
+  "prompt": "…",
+  "finetune_id": "lh6n3z81aznqz0ohl9pn",
+  "progress": { "stage": "validated", "percent": 10, "message": "Request validated" }
+}
+```
+
+Validation errors (same cross-field rules as `render_music`) are returned
+immediately; anything that fails *after* the row exists shows up as
+`status: "failed"` in `get_render_status`. Progress is held in memory per
+process (single-replica assumption — see `docs/checkpoint.md` for the Azure note).
 
 ---
 
 ## Tool: `get_render_status`
 
-Recovery/polling companion to `render_music`.
+Polling companion to `start_render`, and recovery for `render_music`.
 
 **Example prompt that triggers it:**
 > "Hmm, that render seemed to hang and never came back — did it actually
@@ -268,8 +303,10 @@ instead of re-submitting and spending credits twice.)
 
 ### Output
 
-- `status: "complete"` → the **full** `render_music` response shape (above).
-- Otherwise → `{ "id": "…", "status": "processing" | "failed", "error": "…" | null }`.
+- `status: "complete"` → the **full** `render_music` response shape (above), including `audio_url`.
+- `processing` → `{ "id", "status": "processing", "progress": { "stage", "percent", "message" } | null, "title", "prompt", "finetune_id" }`.
+  `progress` is present only for renders started with `start_render` in this process.
+- `failed` → `{ "id", "status": "failed", "error": "…" }`.
 - Unknown id → tool error `Render not found: <id>`.
 
 ---
@@ -332,10 +369,19 @@ combinations.
 
 ---
 
+## Tool: `list_renders` (app-only)
+
+Hidden from the model (`_meta.ui.visibility: ["app"]`): only the Keepsong Studio
+card calls it, for its Versions rail. Returns up to `limit` (1–50, default 20)
+recent **completed** songs, newest first, each in the `render_music` response
+shape (with `audio_url`), excluding style previews (titles starting `preview:`).
+
+---
+
 ## Resource: `keepsong://renders/{id}`
 
-The only way audio bytes leave this server (there are no HTTP download/stream
-routes in this deployment). This replaces the Python app's
+The MCP way to get audio bytes (the other is the signed `audio_url`, described
+at the end of this document). This replaces the Python app's
 `GET /render/download/{id}` and `GET /render/stream/{id}` — the
 attachment-vs-inline distinction has no MCP equivalent; a resource read simply
 returns the bytes.
@@ -364,8 +410,44 @@ read failures with a specific message.
 
 ---
 
-## Not tools: `GET /health`
+## Resource: `ui://keepsong/studio.html` — the Keepsong Studio card
 
-A plain, unauthenticated HTTP liveness endpoint for container probes —
-`{ "status": "ok", "name": …, "version": … }`. Everything else on this server
-is MCP.
+An [MCP Apps](https://modelcontextprotocol.github.io/ext-apps/) resource
+(`text/html;profile=mcp-app`): one self-contained HTML bundle built from
+`widgets/` (`npm run build:widgets` → `assets/studio.html`). Every widget tool
+(`generate_music_prompt`, `list_finetunes`, `start_render`, `get_render_status`,
+`list_renders`) advertises it via `_meta.ui.resourceUri`, so hosts that support
+MCP Apps — Microsoft 365 Copilot — render the card inline instead of raw JSON.
+
+Widget tools return their JSON twice: as the `text` block the model reads, and
+as `structuredContent` with a `kind` the card switches on:
+
+| `kind` | From | Card state |
+|---|---|---|
+| `brief` | `generate_music_prompt` | The brief: title, description, style, direction |
+| `styles` | `list_finetunes` | Style strip |
+| `plan` | `generate_composition_plan` | Section timeline while composing |
+| `composing` | `start_render`; `get_render_status` while processing | Progress |
+| `song` | `get_render_status` when complete | Player |
+| `failed` | `get_render_status` when failed | Error + retry |
+| `versions` | `list_renders` | Versions rail |
+
+The resource's `_meta.ui.csp` allows `PUBLIC_BASE_URL` as a connect and resource
+domain so the card can play `audio_url`. Copilot reads this one resource
+**without** a user token — the server permits tokenless `resources/read` for
+`ui://` URIs only; every tool and the `keepsong://` resource stay behind auth.
+
+---
+
+## Not tools: `GET /health` and `GET /media/renders/{id}`
+
+- **`GET /health`** — plain, unauthenticated liveness endpoint for container
+  probes: `{ "status": "ok", "name": …, "version": … }`.
+- **`GET /media/renders/{id}?exp=<unix seconds>&sig=<hmac>`** — streams a
+  completed render's audio for players that can't read MCP resources (the
+  Copilot card's `<audio>`). Authenticated by the signature — HMAC-SHA256 over
+  `id.exp` with `MEDIA_SIGNING_KEY`, one-hour expiry — rather than a bearer
+  token, because browsers can't attach one to media requests. Supports `Range`
+  for scrubbing. `403` on a bad or expired link, `404` for unknown or
+  incomplete renders. Links are minted only by the server (`audio_url` in tool
+  results); nobody can construct one without the key.

@@ -4,6 +4,9 @@ import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
 import { jwtVerify } from "jose";
 import { createHttpApp } from "../../src/httpServer.js";
 import type { ToolDeps } from "../../src/mcp/tools.js";
+import { STUDIO_URI } from "../../src/mcp/ui.js";
+import { signRenderUrl } from "../../src/services/media.js";
+import { completeRow, fakeRepo, fakeStorage } from "../fakes.js";
 import { makeTestConfig } from "../helpers.js";
 
 vi.mock("jose", () => ({
@@ -24,8 +27,12 @@ const config = makeTestConfig({
   entraAudiences: ["cid"],
   corsAllowedOrigins: [widgetOrigin],
 });
-// initialize / tools/list never touch storage or the repo.
-const deps = { config, storage: {}, repo: {} } as unknown as ToolDeps;
+// One complete render ("r1", 10 bytes of "audio") for the media route tests.
+const deps: ToolDeps = {
+  config,
+  storage: fakeStorage({ "song.mp3": Buffer.from("0123456789") }),
+  repo: fakeRepo([completeRow()]),
+};
 
 let server: Server;
 let base: string;
@@ -109,5 +116,44 @@ describe("HTTP server", () => {
   it("returns 405 for GET and DELETE on the MCP path", async () => {
     expect((await fetch(`${base}/mcp`, { method: "GET" })).status).toBe(405);
     expect((await fetch(`${base}/mcp`, { method: "DELETE" })).status).toBe(405);
+  });
+});
+
+describe("studio template and media (no bearer token)", () => {
+  function readResource(uri: string) {
+    return fetch(`${base}/mcp`, {
+      method: "POST",
+      headers: { "content-type": "application/json", accept: "application/json, text/event-stream" },
+      body: JSON.stringify({ jsonrpc: "2.0", id: 1, method: "resources/read", params: { uri } }),
+    });
+  }
+
+  it("lets Copilot read the ui:// template without a token", async () => {
+    const res = await readResource(STUDIO_URI);
+    expect(res.status).toBe(200);
+    const { result } = (await rpcResult(res)) as { result: { contents: Array<{ mimeType: string }> } };
+    expect(result.contents[0]?.mimeType).toBe("text/html;profile=mcp-app");
+  });
+
+  it("still requires a token for keepsong:// audio resources", async () => {
+    expect((await readResource("keepsong://renders/r1")).status).toBe(401);
+  });
+
+  it("serves audio only with a valid signature, with Range support", async () => {
+    expect((await fetch(`${base}/media/renders/r1?exp=99999999999&sig=00`)).status).toBe(403);
+
+    const signed = signRenderUrl(config, "r1").replace("http://localhost:3000", base);
+    const full = await fetch(signed);
+    expect(full.status).toBe(200);
+    expect(full.headers.get("content-type")).toBe("audio/mpeg");
+    expect(await full.text()).toBe("0123456789");
+
+    const part = await fetch(signed, { headers: { range: "bytes=2-5" } });
+    expect(part.status).toBe(206);
+    expect(part.headers.get("content-range")).toBe("bytes 2-5/10");
+    expect(await part.text()).toBe("2345");
+
+    const missing = signRenderUrl(config, "nope").replace("http://localhost:3000", base);
+    expect((await fetch(missing)).status).toBe(404);
   });
 });

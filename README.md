@@ -14,12 +14,17 @@ from REST endpoints: [docs/mcp-tools.md](docs/mcp-tools.md).
 | `generate_music_prompt` | Finetune (sets the sound) + blueprint and delivery presets (+ optional narrative) → polished music prompt, via `@openai/agents` (gpt-5.6 + web search, structured output) |
 | `generate_composition_plan` | Prompt text → section-by-section `music_v2_5` plan (`chunks`) |
 | `render_music` | Prompt **or** chunks → actual audio via ElevenLabs; optional `finetune_id`/`finetune_strength`; emits MCP progress notifications when the caller sends a `progressToken` |
-| `get_render_status` | Recover a render by id after a timeout/disconnect (`processing` / `complete` / `failed`) |
+| `start_render` | Same inputs as `render_music`, but returns a render id **immediately** and renders in the background — what the Copilot card uses so nobody waits on one long call |
+| `get_render_status` | Recover a render by id (`processing` with live progress / `complete` with a signed `audio_url` / `failed`) |
 | `list_finetunes` | ElevenLabs finetunes (TTL-cached; client-side `model_id`/completed filtering) |
+| `list_renders` | App-only (hidden from the model): recent songs with signed audio URLs, for the card's Versions rail |
 | `keepsong://renders/{id}` | Resource: the rendered audio bytes (base64 blob + mimeType); `resources/list` browses recent renders |
+| `ui://keepsong/studio.html` | Resource: the **Keepsong Studio** card (MCP Apps) attached to the tools above; built from `widgets/` |
 
-Audio bytes leave the server **only** via the MCP resource — there are no HTTP
-download/stream routes. The only non-MCP route is an unauthenticated `GET /health`.
+Audio leaves the server via the MCP resource or via short-lived **signed links**
+(`GET /media/renders/{id}?exp=&sig=`, one hour, minted only by the server) that the
+Copilot card's player can play. Non-MCP routes: `GET /health` (unauthenticated) and
+`GET /media/...` (signature-authenticated).
 
 ## Architecture notes
 
@@ -45,6 +50,14 @@ download/stream routes. The only non-MCP route is an unauthenticated `GET /healt
   Defaults on when `ENVIRONMENT=production`; gate with `AUTH_ENABLED`. Uniform
   authorization (any valid tenant user → all tools). Setup:
   [docs/copilot-auth.md](docs/copilot-auth.md).
+- **Copilot UI (MCP Apps)**: `widgets/` is a React + Fluent UI v9 app bundled to
+  one HTML file (`assets/studio.html`) and served as `ui://keepsong/studio.html`.
+  Widget tools point at it via `_meta.ui.resourceUri` and return
+  `structuredContent.kind`, which picks the card state. `start_render` runs renders
+  in the background (progress kept in memory — single replica) and `audio_url` is a
+  signed one-hour link so the card's player can stream. Set `PUBLIC_BASE_URL` to
+  the URL Copilot uses (tunnel or Azure) and a `MEDIA_SIGNING_KEY`. Status and
+  phases: [docs/checkpoint.md](docs/checkpoint.md).
 - The system prompt `prompts/generate_music_prompt.md` is the behavioral spec for
   prompt generation: blueprint and delivery preset mappings, plus how the sound is
   derived from the finetune the server looks up from `finetune_id`.
@@ -57,6 +70,7 @@ Requires Node >= 20.
 git clone https://github.com/joelborellis/ElevenLabs-music-mcp.git
 cd ElevenLabs-music-mcp
 npm install              # also builds dist/ via the prepare script
+npm run widgets:install && npm run build:widgets   # Copilot card → assets/studio.html (only needed for Copilot)
 cp .env.example .env     # fill in keys; see .env.example for every variable
 npm run db:init          # Postgres only — applies migrations out-of-band (NEVER at container startup)
 ```

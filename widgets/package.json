@@ -1,0 +1,27 @@
+{
+  "name": "keepsong-widgets",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Keepsong Studio — the MCP Apps card rendered inside Microsoft 365 Copilot. Builds to ../assets/studio.html.",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@fluentui/react-components": "^9.56.0",
+    "@fluentui/react-icons": "^2.0.258",
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.4",
+    "typescript": "^5.7.2",
+    "vite": "^5.4.11",
+    "vite-plugin-singlefile": "^2.0.3"
+  }
+}

@@ -83,25 +83,35 @@ the tunnel probably isn't being hosted, or the tunnel expired. If you have to cr
 the URL changes and you must update the agent's `ai-plugin.json`, the SSO registration's Base URL,
 and the widget host, then provision again.
 
-## Next: UI widgets (not started)
+## UI: Keepsong Studio (in progress)
 
-The widgets are served by **this server** as `ui://` resources and linked from tools with
-`_meta.ui.resourceUri` (MCP Apps) or `openai/outputTemplate` (OpenAI Apps SDK). The agent project
-barely changes. Decisions to make before planning:
+Design (decided 2026-11-01): **one evolving "studio card"** (MCP Apps standard, React + Fluent UI v9)
+that moves through Brief → Style strip → Composing → Listen → Versions, built for an internal demo.
+Full design and phases: the plan in `C:\Users\Joel(gametolearn)\.claude\plans\i-shifted-to-plan-wise-thimble.md`
+(copy it into docs/ if it should live with the repo).
 
-1. **Which widgets first.** Candidates:
-   - a **song player** on `render_music` / `get_render_status` (title, sections, progress while rendering, audio playback)
-   - a **finetune picker** on `list_finetunes`
-   - a **prompt/plan viewer** with a "Render this" button
-2. **How the player gets audio.** Widgets can't read `keepsong://renders/{id}`. Options: a short-lived
-   **signed URL route** on this server (works with local and Azure storage), or an **Azure Blob SAS
-   URL** (Azure storage only). Either changes the repo's current "no HTTP download routes" rule.
-3. **Widget stack.** React + Fluent UI v9 (like Microsoft's samples), or plain HTML/JS.
-4. **Widget standard.** MCP Apps (open standard) or OpenAI Apps SDK. Copilot supports both, with gaps:
-   see the capability tables on Microsoft's [MCP apps page](https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/plugin-mcp-apps).
-5. **Template access.** Copilot loads widget templates without a user token. Microsoft's sample lets
-   `resources/list` and `resources/read` through without auth for `ui://` URIs only. The audio
-   resources and tools must stay protected.
+**Phase 0 — foundations: done.**
+- `widgets/` workspace builds `assets/studio.html` (`npm run widgets:install`, `npm run build:widgets`).
+  The server serves it as `ui://keepsong/studio.html` with CSP for `PUBLIC_BASE_URL`, and lets Copilot
+  read that one resource without a token.
+- Widget tools carry `_meta.ui.resourceUri`; results include `structuredContent.kind`
+  (brief / styles / plan / composing / song / failed / versions).
+- `start_render` (async, returns the id at once) + in-memory progress; `get_render_status` reports it.
+- Signed audio links: `GET /media/renders/{id}?exp=&sig=` (1 h, `MEDIA_SIGNING_KEY`), `audio_url` on results.
+- `list_renders` (app-only) for the Versions rail.
+- Agent instructions + conversation starters rewritten in `keepsong-copilot` (re-provision after edits).
+- The card itself is still the Phase 0 "hello card": a readable summary per state plus an `<audio>`
+  player, and it polls `get_render_status` every 3 s while composing.
+- **Verified in Copilot on 2026-11-02:** "Make a 30-second upbeat teaser" → brief → one Confirm
+  (only credit-spending tools prompt; the rest are `readOnlyHint: true`) → composing with live
+  percentage → player, and the audio played from the tunnel via the signed link.
+
+**Next phases:** 1 Listen (player + section timeline), 2 Brief + Composing, 3 Style strip + 8-second
+taste tests (`preview_style`), 4 Variations / Versions / fullscreen and agent polish.
+
+**Before testing the card in Copilot:** set `PUBLIC_BASE_URL=https://keepsong-3000.use2.devtunnels.ms`
+and a `MEDIA_SIGNING_KEY` in `.env`, run `npm run build:widgets`, restart the server, and provision
+the agent again. Then check the server log: only `resources/read ui://…` should arrive without a token.
 
 Other open items:
 - Customize the agent's instructions (`instruction.txt`) and conversation starters, e.g. teach it

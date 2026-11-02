@@ -10,13 +10,16 @@
   "files": [
     "dist",
     "prompts",
-    "drizzle"
+    "drizzle",
+    "assets"
   ],
   "engines": {
     "node": ">=20"
   },
   "scripts": {
     "build": "tsc",
+    "build:widgets": "npm --prefix widgets run build",
+    "widgets:install": "npm --prefix widgets install",
     "prepare": "npm run build",
     "dev": "tsx src/index.ts",
     "dev:stdio": "tsx src/index.ts --stdio",
@@ -36,6 +39,7 @@
     "@azure/identity": "^4.13.1",
     "@azure/storage-blob": "^12.33.0",
     "@elevenlabs/elevenlabs-js": "^2.74.0",
+    "@modelcontextprotocol/ext-apps": "^1.7.5",
     "@modelcontextprotocol/sdk": "^1.32.2",
     "@openai/agents": "^0.14.1",
     "better-sqlite3": "^12.4.1",

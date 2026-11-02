@@ -5,3 +5,6 @@ data/
 output/
 *.tsbuildinfo
 test/smoke/last-smoke-output.mp3
+# Built widget bundle (npm run build:widgets)
+assets/*
+!assets/.gitkeep

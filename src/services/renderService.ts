@@ -48,6 +48,13 @@ export type ProgressCallback = (
   message: string,
 ) => void | Promise<void>;
 
+export interface RenderOptions {
+  /** Pre-chosen render id, so a caller can hand it out before the render finishes. */
+  id?: string;
+  /** Fires once the "processing" row exists — i.e. once get_render_status can find it. */
+  onStarted?: (id: string) => void;
+}
+
 export interface RenderServiceDeps {
   config: AppConfig;
   storage: StorageBackend;
@@ -82,6 +89,7 @@ export async function render(
   request: RenderRequest,
   requestId: string,
   onProgress?: ProgressCallback,
+  options: RenderOptions = {},
 ): Promise<RenderResult> {
   const emit = async (stage: ProgressStage, percent: number, message: string) => {
     if (onProgress) await onProgress(stage, percent, message);
@@ -95,7 +103,7 @@ export async function render(
   }
   await emit("validated", 10, "Request validated");
 
-  const id = randomUUID();
+  const id = options.id ?? randomUUID();
   await deps.repo.createProcessing({
     id,
     request_id: requestId,
@@ -108,6 +116,7 @@ export async function render(
     finetune_id: request.finetune_id ?? null,
     finetune_strength: request.finetune_strength ?? null,
   });
+  options.onStarted?.(id);
 
   try {
     // --- generating: simulated progress while the API call is in flight ---

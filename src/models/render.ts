@@ -72,8 +72,18 @@ export interface RenderResponse {
   song_metadata?: Record<string, unknown> | null;
   finetune_id?: string | null; // style model applied, if any
   finetune_strength?: number | null;
+  audio_url?: string | null; // short-lived signed HTTPS URL for players/widgets; null until complete
   request_id: string;
   timestamp: string; // ISO 8601
+  title?: string | null;
+  prompt?: string | null;
+}
+
+/** Live stage of an in-flight render (start_render), from services/renderJobs.ts. */
+export interface RenderProgressInfo {
+  stage: string;
+  percent: number;
+  message: string;
 }
 
 export const GetRenderStatusShape = {
@@ -84,4 +94,5 @@ export interface RenderStatusPending {
   id: string;
   status: "processing" | "failed";
   error?: string | null;
+  progress?: RenderProgressInfo | null;
 }

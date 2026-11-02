@@ -41,6 +41,12 @@ export interface AppConfig {
 
   // Exact origins allowed cross-origin (e.g. the Copilot widget host).
   corsAllowedOrigins: string[];
+
+  // Copilot UI / media
+  /** This server's public origin as Copilot and widgets see it (tunnel or Azure URL), no trailing slash. */
+  publicBaseUrl: string;
+  /** HMAC key for short-lived signed audio URLs; empty → per-process random key (dev only). */
+  mediaSigningKey: string;
 }
 
 function parseBool(value: string | undefined, fallback: boolean): boolean {
@@ -85,6 +91,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     throw new ConfigurationError(`FINETUNES_CACHE_TTL must be a non-negative number, got "${ttlRaw}"`);
   }
 
+  const port = Number(env.MCP_PORT || 3000);
+
   return {
     appName: env.APP_NAME ?? "keepsong-mcp",
     appVersion: env.APP_VERSION ?? "0.1.0",
@@ -99,7 +107,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     azureStorageContainer: env.AZURE_STORAGE_CONTAINER || "music",
     databaseUrl: env.DATABASE_URL || "./data/renders.db",
     transport,
-    port: Number(env.MCP_PORT || 3000),
+    port,
     mcpPath: env.MCP_PATH || "/mcp",
     // Auth defaults on in production, off in development; never applies to stdio.
     authEnabled: parseBool(env.AUTH_ENABLED, environment === "production"),
@@ -107,6 +115,8 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     entraAudiences: parseList(env.ENTRA_AUDIENCE),
     entraRequiredScope: parseScope(env.ENTRA_REQUIRED_SCOPE),
     corsAllowedOrigins: parseList(env.CORS_ALLOWED_ORIGINS),
+    publicBaseUrl: (env.PUBLIC_BASE_URL || `http://localhost:${port}`).replace(/\/+$/, ""),
+    mediaSigningKey: env.MEDIA_SIGNING_KEY || "",
   };
 }
 
@@ -134,5 +144,9 @@ export function validateStartupConfig(config: AppConfig): void {
         "AUTH_ENABLED requires ENTRA_TENANT_ID and ENTRA_AUDIENCE (comma-separated list) to be set.",
       );
     }
+  }
+  // Signed audio links must survive restarts and replicas in production.
+  if (config.transport === "http" && config.environment === "production" && !config.mediaSigningKey) {
+    throw new ConfigurationError("MEDIA_SIGNING_KEY is required when ENVIRONMENT=production.");
   }
 }

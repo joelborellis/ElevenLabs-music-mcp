@@ -42,3 +42,22 @@ export function toolJson(payload: unknown): {
 } {
   return { content: [{ type: "text", text: JSON.stringify(payload, null, 2) }] };
 }
+
+/**
+ * Tool result for the Keepsong Studio card: the same JSON as text for the
+ * model, plus `structuredContent` tagged with the card state (`kind`) for the
+ * widget. Hosts without MCP Apps support simply ignore structuredContent.
+ */
+export function toolUi(
+  kind: string,
+  payload: Record<string, unknown>,
+): {
+  [key: string]: unknown;
+  content: Array<{ type: "text"; text: string }>;
+  structuredContent: Record<string, unknown>;
+} {
+  return {
+    content: [{ type: "text", text: JSON.stringify(payload, null, 2) }],
+    structuredContent: { kind, ...payload },
+  };
+}
