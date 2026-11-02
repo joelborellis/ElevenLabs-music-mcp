@@ -30,6 +30,14 @@ export const RenderRequestShape = {
 
   // --- Local only — NEVER sent to ElevenLabs ---
   title: z.string().describe("Names the stored file; never sent to ElevenLabs").nullish(),
+  description: z
+    .string()
+    .describe("Local only — the brief's one-line description, shown in the UI; never sent to ElevenLabs")
+    .nullish(),
+  about: z
+    .string()
+    .describe("Local only — what the song is for (occasion/product/people), shown in the UI; never sent to ElevenLabs")
+    .nullish(),
 };
 
 export const RenderRequestSchema = z
@@ -78,6 +86,8 @@ export interface RenderResponse {
   timestamp: string; // ISO 8601
   title?: string | null;
   prompt?: string | null;
+  description?: string | null; // from the brief (in-memory; see services/renderJobs.ts)
+  about?: string | null; // what the song is for, from the brief
 }
 
 /** Live stage of an in-flight render (start_render), from services/renderJobs.ts. */

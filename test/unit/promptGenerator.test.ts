@@ -38,7 +38,12 @@ const request = PromptGenerationRequestSchema.parse({
   delivery_and_control: "balanced_studio",
   user_narrative: "For Alex's birthday",
 });
-const agentOutput = { prompt: "A nu-disco song...", title: "Alex Glow", description: "A song." };
+const agentOutput = {
+  prompt: "A nu-disco song...",
+  title: "Alex Glow",
+  description: "A song.",
+  about: "Alex's birthday",
+};
 
 function sentPayload(): Record<string, unknown> {
   return JSON.parse(mockedRun.mock.calls[0]?.[1] as string) as Record<string, unknown>;

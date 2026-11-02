@@ -16,6 +16,16 @@ export interface Finetune {
   name?: string | null;
   tags?: string[];
   primary_genre?: string | null;
+  status?: string | null;
+}
+
+/** Result of preview_style (never shown as a card state; consumed by the Style strip). */
+export interface PreviewData {
+  kind: "preview";
+  finetune_id: string;
+  audio_url?: string | null;
+  duration_ms?: number | null;
+  cached?: boolean;
 }
 
 export interface SongMetadata {
@@ -30,6 +40,8 @@ export interface Song {
   id: string;
   title?: string | null;
   prompt?: string | null;
+  description?: string | null;
+  about?: string | null;
   audio_url?: string | null;
   duration_ms?: number | null;
   finetune_id?: string | null;
@@ -41,19 +53,22 @@ export interface Song {
   timestamp?: string;
 }
 
+export interface BriefInput {
+  project_blueprint?: string;
+  delivery_and_control?: string;
+  instrumental_only?: boolean;
+  user_narrative?: string | null;
+}
+
 export interface BriefData {
   kind: "brief";
   prompt: string;
   title?: string | null;
   description?: string | null;
+  about?: string | null;
   finetune_id: string;
   finetune_name?: string | null;
-  input_parameters?: {
-    project_blueprint?: string;
-    delivery_and_control?: string;
-    instrumental_only?: boolean;
-    user_narrative?: string | null;
-  };
+  input_parameters?: BriefInput;
 }
 
 export interface StylesData {
@@ -68,11 +83,10 @@ export interface ComposingData extends Partial<Song> {
   progress?: Progress | null;
 }
 
-export interface FailedData {
+export interface FailedData extends Partial<Song> {
   kind: "failed";
   id: string;
   error?: string | null;
-  title?: string | null;
 }
 
 export interface SongData extends Song {
@@ -91,6 +105,7 @@ export type StudioData =
   | FailedData
   | SongData
   | VersionsData
+  | PreviewData
   | { kind: "plan"; [key: string]: unknown };
 
 declare global {

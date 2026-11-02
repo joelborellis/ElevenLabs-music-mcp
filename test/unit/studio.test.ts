@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createMcpServer } from "../../src/mcp/server.js";
@@ -8,6 +8,16 @@ import type { ComposeDetailedResult } from "../../src/services/elevenlabs.js";
 import { clearAllJobs } from "../../src/services/renderJobs.js";
 import { completeRow, fakeRepo, fakeStorage } from "../fakes.js";
 import { makeTestConfig } from "../helpers.js";
+
+// No network: style names come from a fixed list, lookups return one finetune.
+vi.mock("../../src/services/finetuneService.js", () => {
+  const indie = { id: "ft_indie", name: "Indie Dance", primary_genre: "Indie", tags: ["Nu-Disco"], status: "completed" };
+  return {
+    findCachedFinetune: vi.fn((id: string) => (id === "ft_indie" ? indie : undefined)),
+    getFinetune: vi.fn(async () => indie),
+    listFinetunes: vi.fn(async () => ({ finetunes: [indie], count: 1, has_more: false, next_cursor: null })),
+  };
+});
 
 type ToolResult = { structuredContent?: Record<string, unknown>; isError?: boolean };
 
@@ -77,9 +87,21 @@ describe("Keepsong Studio wiring", () => {
 
     const started = (await client.callTool({
       name: "start_render",
-      arguments: { prompt: "a song for the launch", music_length_ms: 8000, title: "Launch" },
+      arguments: {
+        prompt: "a song for the launch",
+        music_length_ms: 8000,
+        title: "Launch",
+        description: "A punchy teaser.",
+        about: "Spring Roast launch",
+      },
     })) as ToolResult;
-    expect(started.structuredContent).toMatchObject({ kind: "composing", status: "processing", title: "Launch" });
+    expect(started.structuredContent).toMatchObject({
+      kind: "composing",
+      status: "processing",
+      title: "Launch",
+      description: "A punchy teaser.",
+      about: "Spring Roast launch",
+    });
     const id = String(started.structuredContent?.id);
     expect(repo.rows.get(id)?.status).toBe("processing");
 
@@ -93,6 +115,46 @@ describe("Keepsong Studio wiring", () => {
     const done = (await client.callTool({ name: "get_render_status", arguments: { render_id: id } })) as ToolResult;
     expect(done.structuredContent?.kind).toBe("song");
     expect(done.structuredContent?.progress).toBeUndefined();
+    // The brief survives into the finished song (in memory, for this process).
+    expect(done.structuredContent).toMatchObject({ about: "Spring Roast launch", description: "A punchy teaser." });
+    await client.close();
+  });
+
+  it("preview_style renders an 8-second instrumental taste once, then reuses it", async () => {
+    let composeCalls = 0;
+    const repo = fakeRepo();
+    const deps = {
+      config,
+      storage: fakeStorage(),
+      repo,
+      compose: async (_cfg: unknown, kwargs: { music_length_ms?: number; force_instrumental?: boolean }) => {
+        composeCalls += 1;
+        expect(kwargs.music_length_ms).toBe(8000);
+        expect(kwargs.force_instrumental).toBe(true);
+        return { json: {}, audio: Buffer.from("taste"), filename: "taste.mp3", songId: null };
+      },
+    } as ToolDeps;
+    const client = await connect(deps);
+
+    const first = (await client.callTool({ name: "preview_style", arguments: { finetune_id: "ft_indie" } })) as ToolResult;
+    expect(first.structuredContent).toMatchObject({ kind: "preview", finetune_id: "ft_indie", cached: false });
+    expect(String(first.structuredContent?.audio_url)).toContain("/media/renders/");
+    expect([...repo.rows.values()][0]?.title).toBe("preview:ft_indie");
+
+    const second = (await client.callTool({ name: "preview_style", arguments: { finetune_id: "ft_indie" } })) as ToolResult;
+    expect(second.structuredContent?.cached).toBe(true);
+    expect(composeCalls).toBe(1);
+
+    // Previews never appear as songs.
+    const versions = (await client.callTool({ name: "list_renders", arguments: {} })) as ToolResult;
+    expect(versions.structuredContent?.renders).toEqual([]);
+    await client.close();
+  });
+
+  it("resolves the style name for the badge even when the cache is cold", async () => {
+    const client = await connect({ config, storage: fakeStorage(), repo: fakeRepo([completeRow({ finetune_id: "ft_indie" })]) });
+    const result = (await client.callTool({ name: "get_render_status", arguments: { render_id: "r1" } })) as ToolResult;
+    expect(result.structuredContent?.finetune_name).toBe("Indie Dance");
     await client.close();
   });
 

@@ -54,11 +54,14 @@ export interface AgentPromptInput {
   user_narrative?: string | null;
 }
 
-// Structured output the LLM agent is constrained to produce.
+// Structured output the LLM agent is constrained to produce. `about` is the
+// one-line "what this song is for" the studio card shows (empty when there was
+// no narrative).
 export const AgentPromptOutputSchema = z.object({
   prompt: z.string(),
   title: z.string(),
   description: z.string(),
+  about: z.string(),
 });
 export type AgentPromptOutput = z.infer<typeof AgentPromptOutputSchema>;
 
@@ -66,6 +69,7 @@ export interface PromptGenerationResponse {
   prompt: string;
   title?: string | null;
   description?: string | null;
+  about?: string | null;
   finetune_id: string; // pass to render_music
   finetune_name?: string | null;
   sound_profile: string; // slug derived from the finetune name

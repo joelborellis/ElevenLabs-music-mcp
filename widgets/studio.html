@@ -10,6 +10,28 @@
         margin: 0;
         background: transparent;
       }
+      /* Live meter on a playing style card (StyleStrip.tsx). */
+      .ks-meter {
+        display: inline-flex;
+        align-items: flex-end;
+        gap: 2px;
+        height: 14px;
+      }
+      .ks-meter span {
+        width: 3px;
+        height: 100%;
+        border-radius: 2px;
+        transform-origin: bottom;
+        animation: ks-bounce 0.7s ease-in-out infinite alternate;
+      }
+      @keyframes ks-bounce {
+        from {
+          transform: scaleY(0.25);
+        }
+        to {
+          transform: scaleY(1);
+        }
+      }
     </style>
   </head>
   <body>

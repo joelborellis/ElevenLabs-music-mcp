@@ -92,6 +92,7 @@ default, and passes the campaign detail as `user_narrative`.)
   "prompt": "Create a 30-second bright nu-disco ad spot at 122 BPM ...",
   "title": "Spring Roast Groove",            // 3–6 words
   "description": "A 30-second nu-disco ...",  // 1–2 sentences
+  "about": "Spring Roast launch, 14 March",   // what the song is for, from the narrative; null if none
   "finetune_id": "lh6n3z81aznqz0ohl9pn",      // → render_music.finetune_id
   "finetune_name": "Indie Dance",
   "sound_profile": "indie_dance",             // slug sent to the agent
@@ -257,9 +258,10 @@ at the end of this document.
 
 ## Tool: `start_render`
 
-`render_music` without the wait: **identical inputs**, but the call returns as
-soon as the `processing` row exists and the render carries on in the
-background. This is what the Keepsong Studio card uses, so Copilot never blocks
+`render_music` without the wait: **identical inputs** (plus the local-only
+`description` and `about` from the brief, which the card shows while composing
+and on the finished song), but the call returns as soon as the `processing` row
+exists and the render carries on in the background. This is what the Keepsong Studio card uses, so Copilot never blocks
 on a minutes-long call (or trips a gateway timeout). Prefer it whenever a card
 is shown; use `render_music` from clients that want to block.
 
@@ -380,6 +382,18 @@ card, for its Versions rail.
 
 ---
 
+## Tool: `preview_style` (app-only)
+
+Hidden from the model (`_meta.ui.visibility: ["app"]`): the Style strip calls it
+when the user taps **Hear a taste**. Renders an **8-second instrumental** sample
+in the given finetune (prompt built from the finetune's genre and tags,
+`force_instrumental`, title `preview:<finetune_id>`) and returns
+`{ finetune_id, audio_url, duration_ms, cached }`. The second tap on the same
+style finds the earlier row by title and reuses it — one render per style,
+ever. Previews never appear in `list_renders` or the Versions rail.
+
+---
+
 ## Resource: `keepsong://renders/{id}`
 
 The MCP way to get audio bytes (the other is the signed `audio_url`, described
@@ -433,6 +447,7 @@ as `structuredContent` with a `kind` the card switches on:
 | `song` | `get_render_status` when complete | Player |
 | `failed` | `get_render_status` when failed | Error + retry |
 | `versions` | `list_renders` | Versions rail |
+| `preview` | `preview_style` (app-only) | Not a state: the Style strip plays the returned `audio_url` |
 
 The resource's `_meta.ui.csp` allows `PUBLIC_BASE_URL` as a connect and resource
 domain so the card can play `audio_url`. Copilot reads this one resource

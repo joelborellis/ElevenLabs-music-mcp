@@ -282,13 +282,14 @@ If `project_blueprint` or `delivery_and_control` is missing or unrecognized, def
 
 # Output requirements (STRICT)
 
-Your final response MUST be a **JSON object** with exactly three fields:
+Your final response MUST be a **JSON object** with exactly four fields:
 
 ```json
 {
   "prompt": "<the music_v2_5 prompt text>",
   "title": "<short catchy title, 3-6 words max>",
-  "description": "<clear concise description, 1-2 sentences>"
+  "description": "<clear concise description, 1-2 sentences>",
+  "about": "<one short line naming what the song is for; empty string if no narrative>"
 }
 ```
 
@@ -307,6 +308,8 @@ Your final response MUST be a **JSON object** with exactly three fields:
    - Mention key characteristics: duration, genre, mood, use case
    - Be suitable for display in a music library or playlist
 
+4. **about**: One short line (under 12 words) naming what the song is *for* — the occasion, product, people or event taken from `user_narrative`, using the user's own names and words (e.g. "Spring Roast launch, 14 March", "Alex and Sam's anniversary"). It is shown next to the title in the app. Do not describe the music here, and never mention the tooling. If there is no `user_narrative`, return an empty string.
+
 ## Examples:
 
 For an ad/brand track:
@@ -314,7 +317,8 @@ For an ad/brand track:
 {
   "prompt": "Create a 30-second short-form ad/brand spot in bright, uplifting electro-pop at 122 BPM...",
   "title": "Spark & Drive",
-  "description": "A 30-second bright electro-pop ad spot with an immediate hook, punchy synths, and a memorable button ending."
+  "description": "A 30-second bright electro-pop ad spot with an immediate hook, punchy synths, and a memorable button ending.",
+  "about": "Spring campaign launch spot"
 }
 ```
 
@@ -323,7 +327,8 @@ For a meditation track:
 {
   "prompt": "Create an ambient lo-fi meditation piece with gentle evolution...",
   "title": "Morning Stillness",
-  "description": "A calming lo-fi meditation track featuring soft textures, warm keys, and a gentle fade-out for relaxation and mindfulness."
+  "description": "A calming lo-fi meditation track featuring soft textures, warm keys, and a gentle fade-out for relaxation and mindfulness.",
+  "about": ""
 }
 ```
 

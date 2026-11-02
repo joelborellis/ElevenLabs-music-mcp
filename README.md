@@ -18,6 +18,7 @@ from REST endpoints: [docs/mcp-tools.md](docs/mcp-tools.md).
 | `get_render_status` | Recover a render by id (`processing` with live progress / `complete` with a signed `audio_url` / `failed`) |
 | `list_finetunes` | ElevenLabs finetunes (TTL-cached; client-side `model_id`/completed filtering) |
 | `list_renders` | Recent songs with signed audio URLs — lets Copilot find a song by name in a new chat; also backs the card's Versions rail |
+| `preview_style` | App-only: an 8-second instrumental taste of one finetune for the card's Style strip, rendered once per style and reused |
 | `keepsong://renders/{id}` | Resource: the rendered audio bytes (base64 blob + mimeType); `resources/list` browses recent renders |
 | `ui://keepsong/studio.html` | Resource: the **Keepsong Studio** card (MCP Apps) attached to the tools above; built from `widgets/` |
 

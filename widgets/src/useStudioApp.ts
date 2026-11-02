@@ -22,6 +22,10 @@ export function dataFromResult(result: ToolResultLike): StudioData | null {
   }
 }
 
+function errorText(result: ToolResultLike): string {
+  return result.content?.find((c) => c.type === "text")?.text ?? "The server reported an error.";
+}
+
 /**
  * Connects to the host (Copilot), tracks the latest tool result as card data,
  * and exposes the host theme. Handlers are attached in onAppCreated so the
@@ -33,7 +37,7 @@ export function useStudioApp() {
   const [displayMode, setDisplayMode] = useState<string>("inline");
 
   const { app, isConnected, error } = useApp({
-    appInfo: { name: "Keepsong Studio", version: "0.1.0" },
+    appInfo: { name: "Keepsong Studio", version: "0.2.0" },
     capabilities: {},
     onAppCreated: (created: App) => {
       created.ontoolresult = (result) => {
@@ -54,17 +58,40 @@ export function useStudioApp() {
     if (ctx?.displayMode) setDisplayMode(ctx.displayMode);
   }, [app, isConnected]);
 
-  /** Call a server tool and, when it returns card data, show it. */
-  const callTool = useCallback(
+  /** Call a server tool and return its card data WITHOUT showing it (e.g. a plan fetched for the timeline). */
+  const callToolQuiet = useCallback(
     async (name: string, args: Record<string, unknown> = {}): Promise<StudioData | null> => {
-      if (!app) return null;
-      const result = await app.callServerTool({ name, arguments: args });
-      const next = dataFromResult(result as ToolResultLike);
-      if (next) setData(next);
-      return next;
+      if (!app) throw new Error("Not connected to the host yet.");
+      const result = (await app.callServerTool({ name, arguments: args })) as ToolResultLike;
+      if (result.isError) throw new Error(errorText(result));
+      return dataFromResult(result);
     },
     [app],
   );
 
-  return { app, isConnected, error, data, setData, theme, displayMode, callTool };
+  /** Call a server tool and, when it returns card data, show it. */
+  const callTool = useCallback(
+    async (name: string, args: Record<string, unknown> = {}): Promise<StudioData | null> => {
+      const next = await callToolQuiet(name, args);
+      if (next) setData(next);
+      return next;
+    },
+    [callToolQuiet],
+  );
+
+  /** Put a message into the conversation as the user (nudges, "use this one"). False if unsupported. */
+  const sendMessage = useCallback(
+    async (text: string): Promise<boolean> => {
+      if (!app?.sendMessage) return false;
+      try {
+        const result = await app.sendMessage({ role: "user", content: [{ type: "text", text }] });
+        return !result.isError;
+      } catch {
+        return false;
+      }
+    },
+    [app],
+  );
+
+  return { app, isConnected, error, data, setData, theme, displayMode, callTool, callToolQuiet, sendMessage };
 }

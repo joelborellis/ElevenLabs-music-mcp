@@ -14,11 +14,11 @@ import {
   type RenderResponse,
   type RenderStatusPending,
 } from "../models/render.js";
-import { findCachedFinetune, listFinetunes } from "../services/finetuneService.js";
+import { findCachedFinetune, getFinetune, listFinetunes } from "../services/finetuneService.js";
 import { signRenderUrl } from "../services/media.js";
 import { generateCompositionPlan } from "../services/planGenerator.js";
 import { generateMusicPrompt } from "../services/promptGenerator.js";
-import { clearJob, getProgress, setProgress } from "../services/renderJobs.js";
+import { clearJob, getBrief, getProgress, setBrief, setProgress } from "../services/renderJobs.js";
 import { render, type ProgressCallback, type RenderResult } from "../services/renderService.js";
 import type { StorageBackend } from "../services/storage/index.js";
 import { toToolError, toolJson, toolUi } from "./errors.js";
@@ -41,6 +41,28 @@ export function renderUri(id: string): string {
 /** Human name for the style badge — from the finetunes cache only, never a network call. */
 function finetuneName(id: string | null | undefined): string | null {
   return id ? (findCachedFinetune(id)?.name ?? null) : null;
+}
+
+/** One list call (itself cached) so style names resolve even right after a restart. */
+async function warmFinetuneCache(config: AppConfig): Promise<void> {
+  try {
+    await listFinetunes(config, ListFinetunesSchema.parse({ include_incomplete: true, page_size: 100 }));
+  } catch {
+    // The badge is decoration; never fail a status call over it.
+  }
+}
+
+async function resolveFinetuneName(config: AppConfig, id: string | null | undefined): Promise<string | null> {
+  if (!id) return null;
+  const cached = finetuneName(id);
+  if (cached) return cached;
+  await warmFinetuneCache(config);
+  return finetuneName(id);
+}
+
+/** The short prompt behind an 8-second style taste (the finetune itself carries the sound). */
+function previewPrompt(descriptor: string): string {
+  return `An eight-second instrumental taste${descriptor ? ` — ${descriptor}` : ""}: one confident, characteristic musical phrase at full energy from the first beat, no intro silence, no fade-out, no vocals.`;
 }
 
 function resultToResponse(result: RenderResult, requestId: string, config: AppConfig): RenderResponse {
@@ -112,6 +134,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
           prompt: output.prompt,
           title: output.title,
           description: output.description,
+          about: output.about || null,
           finetune_id: output.finetune_id,
           finetune_name: output.finetune_name,
           sound_profile: output.sound_profile,
@@ -190,7 +213,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
       description:
         // Copilot shows this text on the confirmation prompt (the call spends
         // ElevenLabs credits), so the first sentence is written for the user.
-        "Compose the song now: generates the audio with ElevenLabs (uses credits) and returns right away so the card can show progress. Prefer this over render_music whenever the Keepsong Studio card is shown. Inputs: EITHER a text prompt OR composition-plan chunks (never both), plus the finetune_id returned by generate_music_prompt. The card polls get_render_status itself; you can also call it with the returned id.",
+        "Compose the song now: generates the audio with ElevenLabs (uses credits) and returns right away so the card can show progress. Prefer this over render_music whenever the Keepsong Studio card is shown. Inputs: EITHER a text prompt OR composition-plan chunks (never both), plus the finetune_id returned by generate_music_prompt; pass the brief's title, description and about too so the card can show them. The card polls get_render_status itself; you can also call it with the returned id.",
       inputSchema: RenderRequestShape,
       _meta: studio,
     },
@@ -199,6 +222,13 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
         const request = RenderRequestSchema.parse(args);
         const requestId = randomUUID();
         const id = randomUUID();
+        const brief = {
+          title: request.title ?? null,
+          description: request.description ?? null,
+          about: request.about ?? null,
+          finetune_name: await resolveFinetuneName(deps.config, request.finetune_id),
+        };
+        setBrief(id, brief);
         const onProgress: ProgressCallback = (stage, percent, message) => {
           setProgress(id, stage, percent, message);
         };
@@ -217,7 +247,7 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
           id,
           status: "processing",
           request_id: requestId,
-          title: request.title ?? null,
+          ...brief,
           prompt: request.prompt ?? null,
           finetune_id: request.finetune_id ?? null,
           progress: getProgress(id) ?? null,
@@ -248,8 +278,18 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
             isError: true,
           };
         }
+        // The brief (description / about / style name) only exists in memory
+        // for renders this process started; later states fall back gracefully.
+        const brief = getBrief(row.id);
         if (row.status === "complete") {
-          return toolUi("song", { ...rowToResponse(row, deps.config) });
+          const response = rowToResponse(row, deps.config);
+          return toolUi("song", {
+            ...response,
+            finetune_name:
+              brief?.finetune_name ?? (await resolveFinetuneName(deps.config, row.finetune_id)),
+            description: brief?.description ?? null,
+            about: brief?.about ?? null,
+          });
         }
         const pending: RenderStatusPending = {
           id: row.id,
@@ -262,6 +302,9 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
           title: row.title,
           prompt: row.prompt,
           finetune_id: row.finetune_id,
+          finetune_name: brief?.finetune_name ?? finetuneName(row.finetune_id),
+          description: brief?.description ?? null,
+          about: brief?.about ?? null,
         });
       } catch (err) {
         return toToolError(err);
@@ -304,12 +347,70 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     async (args) => {
       try {
         // Over-fetch a little: previews and in-flight rows are filtered out below.
-        const rows = await deps.repo.listRenders(args.limit * 2);
-        const renders = rows
+        const rows = (await deps.repo.listRenders(args.limit * 2))
           .filter((row) => row.status === "complete" && !row.title?.startsWith(PREVIEW_TITLE_PREFIX))
-          .slice(0, args.limit)
-          .map((row) => rowToResponse(row, deps.config));
+          .slice(0, args.limit);
+        if (rows.some((row) => row.finetune_id && !finetuneName(row.finetune_id))) {
+          await warmFinetuneCache(deps.config);
+        }
+        const renders = rows.map((row) => {
+          const brief = getBrief(row.id);
+          return {
+            ...rowToResponse(row, deps.config),
+            description: brief?.description ?? null,
+            about: brief?.about ?? null,
+          };
+        });
         return toolUi("versions", { renders });
+      } catch (err) {
+        return toToolError(err);
+      }
+    },
+  );
+
+  registerAppTool(
+    server,
+    "preview_style",
+    {
+      title: "Hear a taste of a style",
+      description:
+        "Card-only: an 8-second instrumental sample of one finetune so the user can hear a style before composing. Rendered once per style and reused after that.",
+      inputSchema: { finetune_id: z.string().min(1).describe("Finetune id from list_finetunes") },
+      // Cached after the first render and never visible to the model, so the
+      // host shouldn't interrupt a tap on "Hear a taste" with a confirmation.
+      annotations: { readOnlyHint: true, idempotentHint: true },
+      _meta: { ui: { resourceUri: STUDIO_URI, visibility: ["app" as const] } },
+    },
+    async (args) => {
+      try {
+        const title = `${PREVIEW_TITLE_PREFIX}${args.finetune_id}`;
+        const existing = (await deps.repo.listRenders(200)).find(
+          (row) => row.title === title && row.status === "complete" && row.blob_key,
+        );
+        if (existing) {
+          return toolUi("preview", {
+            finetune_id: args.finetune_id,
+            audio_url: signRenderUrl(deps.config, existing.id),
+            duration_ms: existing.duration_ms,
+            cached: true,
+          });
+        }
+        const finetune = await getFinetune(deps.config, args.finetune_id);
+        const descriptor = [finetune.primary_genre, ...finetune.tags].filter(Boolean).join(", ");
+        const request = RenderRequestSchema.parse({
+          prompt: previewPrompt(descriptor),
+          music_length_ms: 8000,
+          force_instrumental: true,
+          finetune_id: args.finetune_id,
+          title,
+        });
+        const result = await render(deps, request, randomUUID());
+        return toolUi("preview", {
+          finetune_id: args.finetune_id,
+          audio_url: signRenderUrl(deps.config, result.id),
+          duration_ms: result.duration_ms,
+          cached: false,
+        });
       } catch (err) {
         return toToolError(err);
       }

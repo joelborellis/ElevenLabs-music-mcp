@@ -113,8 +113,28 @@ Copy link, full-screen toggle. `list_renders` is model-visible so Copilot can fi
 new chat (`list_renders` → `get_render_status`). Known gap: the style badge only shows when the
 finetune is in the server's in-memory cache (i.e. after `list_finetunes` ran since the last restart).
 
-**Next phases:** 2 Brief + Composing (flip-chips, section timeline while rendering), 3 Style strip +
-8-second taste tests (`preview_style`), 4 Variations / Versions / fullscreen polish and agent polish.
+**Phase 2 — Brief + Composing: done, verified in Copilot 2026-11-02** (attached a PowerPoint launch
+deck → brief with "For: Sprout launch, April 15, 2027"; Use/Vocals chips rewrite the brief in place;
+the "More playful" nudge posts via `sendMessage` and Copilot rewrites; Copilot chains straight to the
+song unless told to stop — the agent instructions now say to stop after the brief).
+`components/Brief.tsx` (title / description / "For:" line, Use + Vocals flip-chips that re-run
+`generate_music_prompt` from the card, direction preview, **Compose** → `start_render` from the card,
+nudge chips → `sendMessage`), `components/Composing.tsx` (section timeline from
+`generate_composition_plan` filling with progress, stage words, direction lines), a Failed state with
+Try again. Server: the prompt agent now returns `about` (system prompt has a 4th output field);
+`start_render` accepts local-only `description`/`about`, kept in memory (`renderJobs.ts` briefs) and
+returned by `get_render_status`. Agent instructions: digest guidance for long documents.
+
+**Phase 3 — Style strip + taste tests: built 2026-11-02, awaiting verification in Copilot.**
+`components/StyleStrip.tsx`: one mood card per finetune (hue from genre family, `lib/styleColor.ts`),
+**Hear a taste** → `preview_style` (app-only; 8-second instrumental, title `preview:<id>`, rendered once
+per style then reused), **Use this**, **Surprise me**, live meter while playing. The Brief's Style chip
+opens the strip inline and a pick re-runs the brief; the standalone strip (from `list_finetunes`)
+sends `Use the "X" style for the song.` back to Copilot. Style badges now resolve even after a restart
+(the server warms the finetunes cache on demand). Agent instructions: browse styles → stop after
+`list_finetunes`; treat the "Use the … style" message as the pick.
+
+**Next phase:** 4 Variations / Versions rail / fullscreen polish and agent polish.
 
 **Before testing the card in Copilot:** set `PUBLIC_BASE_URL=https://keepsong-3000.use2.devtunnels.ms`
 and a `MEDIA_SIGNING_KEY` in `.env`, run `npm run build:widgets`, restart the server, and provision

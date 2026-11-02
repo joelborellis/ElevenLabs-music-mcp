@@ -39,7 +39,7 @@ export function Player({ song, app, displayMode }: Props) {
 
   const meta = song.song_metadata ?? {};
   const title = song.title || meta.title || "Your song";
-  const description = meta.description;
+  const description = meta.description || song.description;
   const genres = Array.isArray(meta.genres) ? meta.genres.slice(0, 3) : [];
   const total = durationMs || song.duration_ms || 0;
   const current = sectionAt(sections, timeMs);
@@ -78,6 +78,11 @@ export function Player({ song, app, displayMode }: Props) {
             <Body1 block style={{ color: tokens.colorNeutralForeground2 }}>
               {description}
             </Body1>
+          )}
+          {song.about && (
+            <Caption1 block style={{ marginTop: 4, color: tokens.colorNeutralForeground3 }}>
+              For: {song.about}
+            </Caption1>
           )}
         </div>
         {app?.requestDisplayMode && (
