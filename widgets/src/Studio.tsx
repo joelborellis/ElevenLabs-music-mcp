@@ -1,3 +1,4 @@
+import { useEffect } from "react";
 import {
   Badge,
   Body1,
@@ -7,23 +8,24 @@ import {
   Spinner,
   Subtitle1,
   Text,
+  tokens,
   webDarkTheme,
   webLightTheme,
 } from "@fluentui/react-components";
-import { useEffect } from "react";
+import type { App } from "@modelcontextprotocol/ext-apps/react";
+import { Player } from "./components/Player";
 import { useStudioApp } from "./useStudioApp";
 import type { StudioData } from "./types";
 
 const POLL_MS = 3000;
 
 /**
- * Phase 0 "hello card": proves the round trip (resource served → Copilot renders
- * it → tool result arrives → audio plays) and shows a readable summary for
- * every state. The real Brief / Styles / Composing / Listen / Versions states
- * replace the bodies below in later phases.
+ * Keepsong Studio: one card, several states, chosen by `structuredContent.kind`
+ * of whichever tool result the host hands us. Listen (`song`) is the real
+ * thing; the other states are still placeholders until their phase lands.
  */
 export function Studio() {
-  const { data, theme, isConnected, error, callTool } = useStudioApp();
+  const { app, data, theme, displayMode, isConnected, error, callTool } = useStudioApp();
 
   // While a render is in flight, keep asking the server until it is a song (or failed).
   // get_render_status is read-only, so Copilot runs it without a confirmation prompt.
@@ -38,25 +40,50 @@ export function Studio() {
     return () => clearInterval(timer);
   }, [data, callTool]);
 
+  const fullscreen = displayMode === "fullscreen";
+
   return (
     <FluentProvider theme={theme === "dark" ? webDarkTheme : webLightTheme} style={{ background: "transparent" }}>
-      <div style={{ padding: 16, display: "flex", flexDirection: "column", gap: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <Subtitle1>Keepsong Studio</Subtitle1>
-          <Badge appearance="tint">{data?.kind ?? (isConnected ? "ready" : "connecting")}</Badge>
-        </div>
-        {error && <Text style={{ color: "crimson" }}>{error.message}</Text>}
-        <Body data={data} connected={isConnected} />
+      <div
+        style={{
+          padding: fullscreen ? 24 : 16,
+          maxWidth: fullscreen ? 960 : undefined,
+          margin: fullscreen ? "0 auto" : undefined,
+          display: "flex",
+          flexDirection: "column",
+          gap: 12,
+        }}
+      >
+        {data?.kind !== "song" && (
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <Subtitle1>Keepsong Studio</Subtitle1>
+            <Badge appearance="tint">{data?.kind ?? (isConnected ? "ready" : "connecting")}</Badge>
+          </div>
+        )}
+        {error && <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error.message}</Text>}
+        <Body data={data} connected={isConnected} app={app} displayMode={displayMode} />
       </div>
     </FluentProvider>
   );
 }
 
-function Body({ data, connected }: { data: StudioData | null; connected: boolean }) {
+function Body({
+  data,
+  connected,
+  app,
+  displayMode,
+}: {
+  data: StudioData | null;
+  connected: boolean;
+  app: App | null;
+  displayMode: string;
+}) {
   if (!data) {
     return connected ? <Caption1>Waiting for Copilot…</Caption1> : <Spinner size="tiny" label="Connecting" />;
   }
   switch (data.kind) {
+    case "song":
+      return <Player song={data} app={app} displayMode={displayMode} />;
     case "brief":
       return (
         <>
@@ -86,19 +113,12 @@ function Body({ data, connected }: { data: StudioData | null; connected: boolean
           </Caption1>
         </>
       );
-    case "song":
-      return (
-        <>
-          <Subtitle1>{data.title ?? "Your song"}</Subtitle1>
-          {data.audio_url ? (
-            <audio controls preload="metadata" src={data.audio_url} style={{ width: "100%" }} />
-          ) : (
-            <Caption1>No audio link available.</Caption1>
-          )}
-        </>
-      );
     case "failed":
-      return <Text style={{ color: "crimson" }}>Render failed: {data.error ?? "unknown error"}</Text>;
+      return (
+        <Text style={{ color: tokens.colorPaletteRedForeground1 }}>
+          Render failed: {data.error ?? "unknown error"}
+        </Text>
+      );
     case "versions":
       return <Caption1>{data.renders.length} song(s)</Caption1>;
     default:

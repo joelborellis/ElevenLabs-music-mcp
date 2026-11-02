@@ -25,15 +25,16 @@ beforeEach(() => {
 });
 
 describe("Keepsong Studio wiring", () => {
-  it("attaches the studio resource to widget tools and hides app-only tools from the model", async () => {
+  it("attaches the studio resource to widget tools, visible to model and app", async () => {
     const client = await connect({ config, storage: fakeStorage(), repo: fakeRepo() });
     const { tools } = await client.listTools();
     const meta = Object.fromEntries(tools.map((t) => [t.name, t._meta as { ui?: Record<string, unknown> } | undefined]));
 
-    for (const name of ["generate_music_prompt", "list_finetunes", "start_render", "get_render_status"]) {
+    for (const name of ["generate_music_prompt", "list_finetunes", "start_render", "get_render_status", "list_renders"]) {
       expect(meta[name]?.ui?.resourceUri, name).toBe(STUDIO_URI);
+      // No visibility restriction: Copilot needs list_renders to find songs by name in a new chat.
+      expect(meta[name]?.ui?.visibility, name).toBeUndefined();
     }
-    expect(meta.list_renders?.ui?.visibility).toEqual(["app"]);
     expect(meta.render_music?.ui).toBeUndefined();
 
     // Copilot prompts the user before any tool that isn't read-only: only the

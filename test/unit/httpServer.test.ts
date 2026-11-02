@@ -153,6 +153,9 @@ describe("studio template and media (no bearer token)", () => {
     expect(part.headers.get("content-range")).toBe("bytes 2-5/10");
     expect(await part.text()).toBe("2345");
 
+    const saved = await fetch(`${signed}&download=1`);
+    expect(saved.headers.get("content-disposition")).toMatch(/^attachment; filename="song\.mp3"$/);
+
     const missing = signRenderUrl(config, "nope").replace("http://localhost:3000", base);
     expect((await fetch(missing)).status).toBe(404);
   });

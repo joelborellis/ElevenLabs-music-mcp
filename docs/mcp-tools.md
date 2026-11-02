@@ -369,12 +369,14 @@ combinations.
 
 ---
 
-## Tool: `list_renders` (app-only)
+## Tool: `list_renders`
 
-Hidden from the model (`_meta.ui.visibility: ["app"]`): only the Keepsong Studio
-card calls it, for its Versions rail. Returns up to `limit` (1–50, default 20)
-recent **completed** songs, newest first, each in the `render_music` response
-shape (with `audio_url`), excluding style previews (titles starting `preview:`).
+Returns up to `limit` (1–50, default 20) recent **completed** songs, newest
+first, each in the `render_music` response shape (with `audio_url`), excluding
+style previews (titles starting `preview:`). Two callers: the model, to find a
+song the user names in a later chat ("show me Spring Into Bright" →
+`list_renders` → `get_render_status` with its id), and the Keepsong Studio
+card, for its Versions rail.
 
 ---
 

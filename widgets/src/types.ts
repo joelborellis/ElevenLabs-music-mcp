@@ -18,6 +18,14 @@ export interface Finetune {
   primary_genre?: string | null;
 }
 
+export interface SongMetadata {
+  title?: string;
+  description?: string;
+  genres?: string[];
+  languages?: string[];
+  [key: string]: unknown;
+}
+
 export interface Song {
   id: string;
   title?: string | null;
@@ -25,8 +33,11 @@ export interface Song {
   audio_url?: string | null;
   duration_ms?: number | null;
   finetune_id?: string | null;
-  composition_plan?: { chunks?: Array<{ text?: string; duration_ms?: number }> } | null;
-  song_metadata?: Record<string, unknown> | null;
+  finetune_name?: string | null;
+  composition_plan?: {
+    chunks?: Array<{ text?: string; duration_ms?: number; positive_styles?: string[] }>;
+  } | null;
+  song_metadata?: SongMetadata | null;
   timestamp?: string;
 }
 

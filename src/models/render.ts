@@ -71,6 +71,7 @@ export interface RenderResponse {
   composition_plan?: Record<string, unknown> | null;
   song_metadata?: Record<string, unknown> | null;
   finetune_id?: string | null; // style model applied, if any
+  finetune_name?: string | null; // human name for UI badges (from the finetunes cache; may be null)
   finetune_strength?: number | null;
   audio_url?: string | null; // short-lived signed HTTPS URL for players/widgets; null until complete
   request_id: string;

@@ -106,8 +106,15 @@ Full design and phases: the plan in `C:\Users\Joel(gametolearn)\.claude\plans\i-
   (only credit-spending tools prompt; the rest are `readOnlyHint: true`) → composing with live
   percentage → player, and the audio played from the tunnel via the signed link.
 
-**Next phases:** 1 Listen (player + section timeline), 2 Brief + Composing, 3 Style strip + 8-second
-taste tests (`preview_style`), 4 Variations / Versions / fullscreen and agent polish.
+**Phase 1 — Listen state: done, verified in Copilot 2026-11-02.** `widgets/src/components/Player.tsx`:
+section timeline as scrub bar (`lib/sections.ts` parses `[Label] lyrics` chunks), current-section
+sound tags, lyrics panel with the active section highlighted, Download (`&download=1` → attachment),
+Copy link, full-screen toggle. `list_renders` is model-visible so Copilot can find a song by name in a
+new chat (`list_renders` → `get_render_status`). Known gap: the style badge only shows when the
+finetune is in the server's in-memory cache (i.e. after `list_finetunes` ran since the last restart).
+
+**Next phases:** 2 Brief + Composing (flip-chips, section timeline while rendering), 3 Style strip +
+8-second taste tests (`preview_style`), 4 Variations / Versions / fullscreen polish and agent polish.
 
 **Before testing the card in Copilot:** set `PUBLIC_BASE_URL=https://keepsong-3000.use2.devtunnels.ms`
 and a `MEDIA_SIGNING_KEY` in `.env`, run `npm run build:widgets`, restart the server, and provision

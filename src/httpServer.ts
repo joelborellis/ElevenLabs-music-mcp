@@ -111,11 +111,13 @@ async function serveRenderAudio(deps: ToolDeps, req: Request, res: Response): Pr
     return;
   }
 
+  // `download=1` (the card's Download button) saves the file instead of playing it in a tab.
+  const disposition = query.download === "1" ? "attachment" : "inline";
   res.set({
     "Content-Type": row.content_type,
     "Accept-Ranges": "bytes",
     "Cache-Control": "private, max-age=3600",
-    "Content-Disposition": `inline; filename="${(row.filename ?? `${id}.mp3`).replace(/"/g, "")}"`,
+    "Content-Disposition": `${disposition}; filename="${(row.filename ?? `${id}.mp3`).replace(/"/g, "")}"`,
   });
 
   // Range support so the player can scrub; files are a few MB, so slicing an

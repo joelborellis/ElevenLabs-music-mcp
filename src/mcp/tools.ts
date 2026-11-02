@@ -14,7 +14,7 @@ import {
   type RenderResponse,
   type RenderStatusPending,
 } from "../models/render.js";
-import { listFinetunes } from "../services/finetuneService.js";
+import { findCachedFinetune, listFinetunes } from "../services/finetuneService.js";
 import { signRenderUrl } from "../services/media.js";
 import { generateCompositionPlan } from "../services/planGenerator.js";
 import { generateMusicPrompt } from "../services/promptGenerator.js";
@@ -38,6 +38,11 @@ export function renderUri(id: string): string {
   return `keepsong://renders/${id}`;
 }
 
+/** Human name for the style badge — from the finetunes cache only, never a network call. */
+function finetuneName(id: string | null | undefined): string | null {
+  return id ? (findCachedFinetune(id)?.name ?? null) : null;
+}
+
 function resultToResponse(result: RenderResult, requestId: string, config: AppConfig): RenderResponse {
   return {
     id: result.id,
@@ -52,6 +57,7 @@ function resultToResponse(result: RenderResult, requestId: string, config: AppCo
     composition_plan: result.composition_plan,
     song_metadata: result.song_metadata,
     finetune_id: result.finetune_id,
+    finetune_name: finetuneName(result.finetune_id),
     finetune_strength: result.finetune_strength,
     request_id: requestId,
     timestamp: new Date().toISOString(),
@@ -72,6 +78,7 @@ export function rowToResponse(row: RenderRow, config: AppConfig): RenderResponse
     composition_plan: row.composition_plan,
     song_metadata: row.song_metadata,
     finetune_id: row.finetune_id,
+    finetune_name: finetuneName(row.finetune_id),
     finetune_strength: row.finetune_strength,
     request_id: row.request_id ?? "",
     timestamp: row.created_at.toISOString(),
@@ -83,7 +90,6 @@ export function rowToResponse(row: RenderRow, config: AppConfig): RenderResponse
 // Every widget tool renders the same studio card; `kind` in structuredContent
 // picks the state (brief / styles / composing / song / failed / versions).
 const studio = { ui: { resourceUri: STUDIO_URI } };
-const studioAppOnly = { ui: { resourceUri: STUDIO_URI, visibility: ["app" as const] } };
 
 export function registerTools(server: McpServer, deps: ToolDeps): void {
   registerAppTool(
@@ -289,10 +295,11 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     "list_renders",
     {
       title: "List recent songs",
-      description: "Recent completed songs (newest first) with signed audio URLs, for the card's Versions rail.",
+      description:
+        "Recent completed songs, newest first, with titles, descriptions and signed audio URLs. Use this to find a song the user refers to by name or as 'the last one' (e.g. in a new chat), then call get_render_status with its id to show the player. Also backs the card's Versions rail.",
       inputSchema: { limit: z.number().int().min(1).max(50).default(20) },
       annotations: { readOnlyHint: true },
-      _meta: studioAppOnly,
+      _meta: studio,
     },
     async (args) => {
       try {
