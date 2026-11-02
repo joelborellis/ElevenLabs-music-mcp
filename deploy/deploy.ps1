@@ -44,7 +44,8 @@ for ($i = 0; $i -lt 30; $i++) {
     Start-Sleep -Seconds 5
     $rev = az containerapp revision list -g $Deploy.ResourceGroup -n $Deploy.App `
         --query "[?properties.active] | sort_by(@, &properties.createdTime) | [-1].{name:name, health:properties.healthState, running:properties.runningState}" -o json | ConvertFrom-Json
-    if ($rev -and $rev.health -eq "Healthy" -and $rev.running -eq "Running") { $revision = $rev; break }
+    # "Running" or "RunningAtMaxScale" (always the case at one replica) both mean it is serving.
+    if ($rev -and $rev.health -eq "Healthy" -and $rev.running -like "Running*") { $revision = $rev; break }
     Write-Host "   $($rev.name): $($rev.health) / $($rev.running)"
 }
 if (-not $revision) {
