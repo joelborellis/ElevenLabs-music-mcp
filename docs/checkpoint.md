@@ -171,9 +171,18 @@ Agent project: `MCP_SERVER_URL` per environment (`env/.env.dev` = tunnel, `env/.
 provision **prod** to get the second Teams app + SSO auth config, then add its `api://auth-…` URI
 to the Entra app and run `set-auth.ps1`.
 
-Status: scripts written and the image **builds successfully in ACR** (validated 2026-11-02 as
-`gtlcr.azurecr.io/keepsong-mcp:validate-<sha>`; Node 24 image). **`first-run.ps1` not yet executed**
-(see azure-deploy.md §1–§3 for the order).
+Status (2026-11-02): **live.** `first-run.ps1` created `keepsong-mcp`
+(https://keepsong-mcp.politerock-e572f8fa.southcentralus.azurecontainerapps.io), `deploy.ps1` shipped
+commit `9c3ada8c`, and the live checks passed (health; tokenless `ui://` read; 401 without token;
+`get_render_status` with an `az` token returns a signed `audio_url` that streams — Postgres + blob
+via managed identity confirmed). Prod agent provisioned (`keepsong-copilotprod`, auth config in
+`env/.env.prod`); its URI `api://auth-72f5a534-…` is in `identifierUris` and `ENTRA_AUDIENCE`;
+widget host `929abf19…widget-renderer.usercontent.microsoft` (+ `.com`) in `CORS_ALLOWED_ORIGINS`.
+Startup line: `auth: Entra ID, 3 audience(s) … CORS origins: 2`. **Verified 2026-11-02: the Copilot
+golden path works on `keepsong-copilotprod` with the laptop server and tunnel off.**
+
+Day to day: develop against the tunnel with the **dev** agent; `pwsh deploy/deploy.ps1` ships a
+committed tree to prod (widgets included). Server env changes: `az containerapp update --set-env-vars`.
 Single replica by design (in-memory progress/briefs). Dev (laptop + tunnel) stays as is.
 
 ## References
