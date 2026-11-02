@@ -87,8 +87,7 @@ and the widget host, then provision again.
 
 Design (decided 2026-11-01): **one evolving "studio card"** (MCP Apps standard, React + Fluent UI v9)
 that moves through Brief → Style strip → Composing → Listen → Versions, built for an internal demo.
-Full design and phases: the plan in `C:\Users\Joel(gametolearn)\.claude\plans\i-shifted-to-plan-wise-thimble.md`
-(copy it into docs/ if it should live with the repo).
+Full design, per-state status and the **Phase 4 scope**: [docs/studio-design.md](studio-design.md).
 
 **Phase 0 — foundations: done.**
 - `widgets/` workspace builds `assets/studio.html` (`npm run widgets:install`, `npm run build:widgets`).
@@ -184,6 +183,45 @@ golden path works on `keepsong-copilotprod` with the laptop server and tunnel of
 Day to day: develop against the tunnel with the **dev** agent; `pwsh deploy/deploy.ps1` ships a
 committed tree to prod (widgets included). Server env changes: `az containerapp update --set-env-vars`.
 Single replica by design (in-memory progress/briefs). Dev (laptop + tunnel) stays as is.
+
+## Picking up on another machine
+
+Both repos are self-contained; only secrets and sign-ins are per machine.
+
+1. **Tools:** Node 24 (the lockfiles are npm 11), PowerShell 7 (`pwsh`), Azure CLI (`az login`,
+   subscription "gametolearn Subscription"), Dev tunnels CLI (`devtunnel user login`), VS Code with the
+   Microsoft 365 Agents Toolkit (sign in to Microsoft 365 in its Accounts pane).
+2. **Clone both repos** side by side: `ElevenLabs-music-mcp` and `keepsong-copilot` (the agent README
+   links to this checkpoint by relative path).
+3. **Server:** `npm install`, `npm run widgets:install && npm run build:widgets`. Recreate `.env` from
+   `.env.example` (never committed) with the values in the Configuration table above:
+   `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `DATABASE_URL` (Azure Postgres), `STORAGE_BACKEND=azure`,
+   `AZURE_STORAGE_ACCOUNT_URL`, `ENVIRONMENT=production`, `AUTH_ENABLED=true`, `ENTRA_TENANT_ID`,
+   `ENTRA_AUDIENCE` (3 entries), `PUBLIC_BASE_URL=https://keepsong-3000.use2.devtunnels.ms`,
+   `MEDIA_SIGNING_KEY` (any random hex), `CORS_ALLOWED_ORIGINS` (dev widget hosts). Blob access locally
+   comes from `az login` (DefaultAzureCredential). `npm test` should be green before starting.
+4. **Dev tunnel:** tunnels belong to the Microsoft account, not the machine — `devtunnel host keepsong`
+   gives the same URL on the new machine (if it expired after 30 days idle, recreate it with the same
+   name: `devtunnel create keepsong -a; devtunnel port create keepsong -p 3000` — the hostname stays
+   `keepsong-3000.use2.devtunnels.ms` only if the tunnel id is the same; otherwise update
+   `env/.env.dev`'s `MCP_SERVER_URL`, the dev SSO registration's Base URL and re-provision dev).
+5. **Agent project:** nothing to install; `env/.env.dev` and `env/.env.prod` are committed. Provision
+   again only when `appPackage/*` or `env/*` change.
+6. **Prod:** untouched by any of this; `pwsh deploy/deploy.ps1` from a clean tree ships to Azure.
+
+## Lessons that aren't obvious from the code
+
+- Copilot shows a Confirm/Cancel prompt for any tool without `annotations.readOnlyHint: true`, using
+  the tool description as the prompt text — keep credit-spending tools' first sentence user-facing.
+- Copilot renders only the **last** tool call's card in a turn; the agent instructions tell it to stop
+  after the brief so the user sees it.
+- The widget template (`resources/read ui://…`) is fetched **without** a user token; everything else
+  arrives with one.
+- `sendMessage` from the card works in Copilot (nudges, picks); `requestDisplayMode("fullscreen")` works.
+- Windows: `az.cmd` breaks on paths with parentheses (the user profile here), `az acr build` chokes on
+  long `node_modules` paths and the CLI crashes on Vite's `✓` — the deploy scripts work around all three.
+- `.env` here runs `ENVIRONMENT=production`, which makes `MEDIA_SIGNING_KEY` mandatory and disables
+  auto-migrations (`npm run db:init` for schema changes).
 
 ## References
 
