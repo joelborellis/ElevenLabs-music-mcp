@@ -159,6 +159,23 @@ Other open items:
 - `render_music` can take minutes. Check how Copilot handles long tool calls; the player widget may
   need to poll `get_render_status`.
 
+## Deployment (Azure Container Apps) — in progress, 2026-11-02
+
+Plan approved and scripted: `Dockerfile` (multi-stage, builds server + card), `deploy/config.ps1`,
+`deploy/first-run.ps1` (create app `keepsong-mcp` in `ElevenLabsMusic` / `elevenlabs-env`, managed
+identity with AcrPull + Storage Blob Data Contributor, secrets, env vars), `deploy/deploy.ps1`
+(build `<git sha>` in ACR, update, wait, rollback hint), `deploy/set-auth.ps1` (append prod audience
++ widget host). Runbook: [docs/azure-deploy.md](azure-deploy.md).
+
+Agent project: `MCP_SERVER_URL` per environment (`env/.env.dev` = tunnel, `env/.env.prod` = Azure);
+provision **prod** to get the second Teams app + SSO auth config, then add its `api://auth-…` URI
+to the Entra app and run `set-auth.ps1`.
+
+Status: scripts written and the image **builds successfully in ACR** (validated 2026-11-02 as
+`gtlcr.azurecr.io/keepsong-mcp:validate-<sha>`; Node 24 image). **`first-run.ps1` not yet executed**
+(see azure-deploy.md §1–§3 for the order).
+Single replica by design (in-memory progress/briefs). Dev (laptop + tunnel) stays as is.
+
 ## References
 
 - [MCP apps in Microsoft 365 Copilot](https://learn.microsoft.com/en-us/microsoft-365/copilot/extensibility/plugin-mcp-apps)

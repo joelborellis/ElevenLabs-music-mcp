@@ -1,0 +1,16 @@
+.git
+node_modules
+widgets/node_modules
+dist
+assets
+.env
+.env.*
+!.env.example
+data
+output
+test
+docs
+_specs
+deploy
+*.md
+*.tsbuildinfo

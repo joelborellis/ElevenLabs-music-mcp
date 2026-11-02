@@ -161,6 +161,14 @@ az account get-access-token --scope api://<client-id>/access_as_user --query acc
   `curl -i -X OPTIONS -H "Origin: https://<widget-host>" -H "Access-Control-Request-Method: POST" http://localhost:3000/mcp`
   should return 204 with `Access-Control-Allow-Origin`.
 
+## A second environment (Azure)
+
+Each server URL needs its own auth config (Base URL), Application ID URI and widget host. The
+production server on Azure Container Apps gets them through a second Agents Toolkit environment
+(`env/.env.prod`, `MCP_SERVER_URL`) and `deploy/set-auth.ps1`; the steps and order are in
+[docs/azure-deploy.md](azure-deploy.md) §3. The Entra app registration is shared; its
+`identifierUris` ends up with one `api://auth-…` entry per environment.
+
 ## Troubleshooting
 
 The 401/403 responses explain the reason in `error.message`, and the server log shows every failure.

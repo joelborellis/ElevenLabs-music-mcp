@@ -90,6 +90,20 @@ npm run dev:stdio        # stdio transport for manual testing / MCP Inspector
 npm run build && npm start
 ```
 
+## Deploy (Azure Container Apps)
+
+Production runs as the Container App `keepsong-mcp`; images are built in the cloud by
+`az acr build` (no local Docker) from the multi-stage [Dockerfile](Dockerfile).
+
+```powershell
+pwsh deploy/first-run.ps1   # once: create the app, roles, secrets, env vars
+pwsh deploy/deploy.ps1      # every ship: build <git sha>, update, wait for healthy, print rollback
+pwsh deploy/set-auth.ps1 …  # after provisioning the prod Copilot agent: audience + widget host
+```
+
+Runbook, including the second (prod) Copilot agent environment and the single-replica
+constraint: [docs/azure-deploy.md](docs/azure-deploy.md).
+
 ## Connect an MCP client
 
 Three ways to wire the server into an MCP client (Claude Code, Cursor, Windsurf,
