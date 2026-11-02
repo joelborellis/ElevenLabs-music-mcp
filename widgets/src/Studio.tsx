@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Badge,
   Button,
@@ -15,17 +15,22 @@ import { Brief, type BriefPatch } from "./components/Brief";
 import { Composing } from "./components/Composing";
 import { Player } from "./components/Player";
 import { StyleStrip } from "./components/StyleStrip";
-import { renderLengthMs } from "./lib/blueprints";
+import { Versions } from "./components/Versions";
+import { alwaysInstrumental, renderLengthMs } from "./lib/blueprints";
 import { parseSections, type Section } from "./lib/sections";
-import type { BriefData, FailedData, Finetune } from "./types";
+import { useThisOneMessage, versionsOf } from "./lib/versions";
+import type { BriefData, FailedData, Finetune, Song } from "./types";
 import { useStudioApp } from "./useStudioApp";
 
 const POLL_MS = 3000;
+const HISTORY_LIMIT = 30;
 
 /**
  * Keepsong Studio: one card, several states, chosen by `structuredContent.kind`
  * of whichever tool result the host hands us: Brief → Composing → Listen, plus
- * the Style strip (standalone or inside the Brief). Versions is still a placeholder.
+ * the Style strip (standalone or inside the Brief / player) and Versions
+ * (standalone from list_renders, or a rail inside Listen when the song has
+ * more than one take — beside the player in full screen, for A/B listening).
  */
 export function Studio() {
   const { app, data, theme, displayMode, isConnected, error, callTool, callToolQuiet, sendMessage } =
@@ -34,7 +39,9 @@ export function Studio() {
   const [notice, setNotice] = useState<string | null>(null);
   const [plan, setPlan] = useState<{ id: string; sections: Section[] } | null>(null);
   const [styles, setStyles] = useState<Finetune[] | null>(null); // null = strip closed
+  const [history, setHistory] = useState<{ songId: string; songs: Song[] } | null>(null);
   const dark = theme === "dark";
+  const songId = data?.kind === "song" ? data.id : null;
 
   // --- Composing: poll until the render is a song (or failed). get_render_status
   // is read-only, so Copilot runs it without a confirmation prompt.
@@ -62,10 +69,25 @@ export function Studio() {
       .catch(() => setPlan({ id, sections: [] })); // fall back to a plain progress bar
   }, [data, plan, callToolQuiet]);
 
-  // Leaving the brief closes the strip.
+  // A new state (or a different song) closes the strip.
   useEffect(() => {
-    if (data?.kind !== "brief") setStyles(null);
-  }, [data?.kind]);
+    setStyles(null);
+  }, [data?.kind, songId]);
+
+  // --- Listen: load recent songs once per song, for its Versions rail. Quiet:
+  // the rail is decoration, so a failure just leaves it out.
+  useEffect(() => {
+    if (!songId || history?.songId === songId) return;
+    void callToolQuiet("list_renders", { limit: HISTORY_LIMIT })
+      .then((result) => setHistory({ songId, songs: result?.kind === "versions" ? result.renders : [] }))
+      .catch(() => setHistory({ songId, songs: [] }));
+  }, [songId, history, callToolQuiet]);
+
+  /** The current song's takes (newest first); the card's copy of it wins (it carries the brief). */
+  const takes = useMemo(() => {
+    if (data?.kind !== "song" || history?.songId !== data.id) return [];
+    return versionsOf(data, history.songs.filter((s) => s.id !== data.id));
+  }, [data, history]);
 
   const run = useCallback(async (label: string, action: () => Promise<unknown>) => {
     setBusy(label);
@@ -105,7 +127,7 @@ export function Studio() {
         title: brief.title ?? null,
         description: brief.description ?? null,
         about: brief.about ?? null,
-        force_instrumental: input.instrumental_only === true,
+        force_instrumental: input.instrumental_only === true || alwaysInstrumental(input.project_blueprint),
         ...(length ? { music_length_ms: length } : {}),
       }),
     );
@@ -155,6 +177,16 @@ export function Studio() {
       }
     : null;
 
+  /** Versions: "Use this one" tells Copilot which take is the song. */
+  const useTake = nudge
+    ? (song: Song, line: string) => nudge(useThisOneMessage(song, line))
+    : null;
+
+  /** Versions: open a take in the big player (read-only, no prompt). */
+  const openTake = (song: Song) => {
+    void run("Opening…", () => callTool("get_render_status", { render_id: song.id }));
+  };
+
   /** Standalone strip (from list_finetunes): the pick goes back to the conversation. */
   const pickStandalone = (style: Finetune) => {
     const text = `Use the "${style.name ?? style.id}" style for the song.`;
@@ -163,13 +195,16 @@ export function Studio() {
   };
 
   const fullscreen = displayMode === "fullscreen";
+  const rail = takes.length > 1;
+  const sideBySide = fullscreen && data?.kind === "song" && rail;
+  const heading = data?.kind === "styles" ? "Pick a sound" : data?.kind === "versions" ? "Your songs" : "Keepsong Studio";
 
   return (
     <FluentProvider theme={dark ? webDarkTheme : webLightTheme} style={{ background: "transparent" }}>
       <div
         style={{
           padding: fullscreen ? 24 : 16,
-          maxWidth: fullscreen ? 960 : undefined,
+          maxWidth: fullscreen ? (sideBySide ? 1280 : 960) : undefined,
           margin: fullscreen ? "0 auto" : undefined,
           display: "flex",
           flexDirection: "column",
@@ -178,14 +213,15 @@ export function Studio() {
       >
         {(!data || data.kind === "styles" || data.kind === "versions" || data.kind === "plan") && (
           <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <Subtitle1>{data?.kind === "styles" ? "Pick a sound" : "Keepsong Studio"}</Subtitle1>
-            {data?.kind !== "styles" && (
+            <Subtitle1>{heading}</Subtitle1>
+            {(!data || data.kind === "plan") && (
               <Badge appearance="tint">{data?.kind ?? (isConnected ? "ready" : "connecting")}</Badge>
             )}
           </div>
         )}
         {error && <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{error.message}</Text>}
         {notice && <Text style={{ color: tokens.colorPaletteRedForeground1 }}>{notice}</Text>}
+        {busy && (data?.kind === "song" || data?.kind === "versions") && <Spinner size="tiny" label={busy} />}
 
         {!data ? (
           isConnected ? (
@@ -208,7 +244,34 @@ export function Studio() {
         ) : data.kind === "composing" ? (
           <Composing data={data} sections={plan?.id === data.id ? plan.sections : null} />
         ) : data.kind === "song" ? (
-          <Player song={data} app={app} displayMode={displayMode} />
+          <div
+            style={
+              sideBySide
+                ? { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 24, alignItems: "start" }
+                : { display: "flex", flexDirection: "column", gap: 16 }
+            }
+          >
+            <Player
+              song={data}
+              app={app}
+              displayMode={displayMode}
+              onVariation={nudge}
+              styles={styles}
+              onOpenStyles={openStyles}
+              onTaste={taste}
+              dark={dark}
+            />
+            {rail && (
+              <Versions
+                songs={takes}
+                currentId={data.id}
+                onUse={useTake}
+                onOpen={busy ? undefined : openTake}
+                heading="Versions"
+                compact={sideBySide}
+              />
+            )}
+          </div>
         ) : data.kind === "failed" ? (
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             <Subtitle1 block>{data.title || "That one didn't work"}</Subtitle1>
@@ -222,7 +285,7 @@ export function Studio() {
         ) : data.kind === "styles" ? (
           <StyleStrip styles={data.finetunes} dark={dark} onTaste={taste} onPick={pickStandalone} pickLabel="Use this" />
         ) : data.kind === "versions" ? (
-          <Caption1>{data.renders.length} song(s)</Caption1>
+          <Versions songs={data.renders} onUse={useTake} onOpen={busy ? undefined : openTake} />
         ) : (
           <Caption1>Received: {data.kind}</Caption1>
         )}

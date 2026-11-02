@@ -62,7 +62,7 @@ reference: [docs/mcp-tools.md](mcp-tools.md).
 | `identifierUris` on the Entra app | `api://<client-id>` and the Teams-generated `api://auth-<uuid>/<client-id>` |
 | SSO auth config | Teams developer portal → Tools → Microsoft Entra SSO client ID registration (created by the toolkit). Its ID is `MCP_DA_AUTH_ID_KEEPSONG30` in the agent's `env/.env.dev` |
 | Server auth settings | This repo's `.env`: `AUTH_ENABLED=true`, `ENTRA_TENANT_ID`, `ENTRA_AUDIENCE` (3 entries: client ID, `api://<client-id>`, the `api://auth-…` URI), `ENTRA_REQUIRED_SCOPE` blank (= `access_as_user`) |
-| CORS | `CORS_ALLOWED_ORIGINS` holds the widget host **twice**, ending in `.usercontent.microsoft` (what Microsoft's generator returned) and in `.usercontent.microsoft.com` (what the docs say). Remove the wrong one once a real widget shows its `Origin` header |
+| CORS | `CORS_ALLOWED_ORIGINS`: the widget host ending in `.usercontent.microsoft` — confirmed 2026-11-02 from the card's iframe (`https://widget-renderer.usercontent.microsoft`). The `.usercontent.microsoft.com` form is wrong; dev no longer has it, prod still does until the next env update. Unused today: no request carries an `Origin` header |
 | Dev tunnel | Persistent tunnel `keepsong.use2`, port 3000, anonymous connect (the server does the auth). Expires after 30 days unused; hosting it resets the timer |
 
 ## How to bring everything back up
@@ -133,7 +133,21 @@ sends `Use the "X" style for the song.` back to Copilot. Style badges now resolv
 (the server warms the finetunes cache on demand). Agent instructions: browse styles → stop after
 `list_finetunes`; treat the "Use the … style" message as the pick.
 
-**Next phase:** 4 Variations / Versions rail / fullscreen polish and agent polish.
+**Phase 4 — Variations + Versions + full screen: built 2026-11-02, awaiting verification in Copilot.**
+Player variation chips (*Shorter*, *Instrumental*, *More energy*, *Extend to 60s*, *Different style* via
+the Style strip) send one-line follow-ups; `components/Versions.tsx` lists takes (standalone for
+`list_renders`, and as a rail in Listen when a song has more than one take, beside the player in full
+screen); playback is exclusive card-wide for A/B; the Vocals chip is fixed for instrumental-only uses;
+the server logs each new browser `Origin` once (to settle the widget-host CORS entry). Finding: the
+dev tunnel inspector shows no `Origin` header on any request (tool calls arrive from Copilot's backend,
+audio needs no CORS), so `CORS_ALLOWED_ORIGINS` is currently unused; keep the entry matching the card
+iframe's host for future browser-side calls. Agent:
+`instruction.txt` steps 5–6 rewritten/added and a fifth conversation starter — **re-provision dev and
+prod**. Details, test script and the CORS follow-up: [studio-design.md](studio-design.md) "Phase 4".
+
+**Next:** verify Phase 4 in Copilot, deploy (`pwsh deploy/deploy.ps1`), settle CORS from the log line,
+then the nice-to-haves in [studio-design.md](studio-design.md) (dark-theme pass, `plan` state,
+persisting briefs on the `renders` row — which would also make version grouping survive restarts).
 
 **Before testing the card in Copilot:** set `PUBLIC_BASE_URL=https://keepsong-3000.use2.devtunnels.ms`
 and a `MEDIA_SIGNING_KEY` in `.env`, run `npm run build:widgets`, restart the server, and provision
@@ -193,7 +207,9 @@ Both repos are self-contained; only secrets and sign-ins are per machine.
    Microsoft 365 Agents Toolkit (sign in to Microsoft 365 in its Accounts pane).
 2. **Clone both repos** side by side: `ElevenLabs-music-mcp` and `keepsong-copilot` (the agent README
    links to this checkpoint by relative path).
-3. **Server:** `npm install`, `npm run widgets:install && npm run build:widgets`. Recreate `.env` from
+3. **Server:** `npm install`, `npm run widgets:install && npm run build:widgets`. With npm 12+,
+   install scripts are blocked until approved: run `npm install-scripts approve better-sqlite3` (and
+   `esbuild`) once, then `npm rebuild better-sqlite3`, or the SQLite test suite can't load its native module. Recreate `.env` from
    `.env.example` (never committed) with the values in the Configuration table above:
    `OPENAI_API_KEY`, `ELEVENLABS_API_KEY`, `DATABASE_URL` (Azure Postgres), `STORAGE_BACKEND=azure`,
    `AZURE_STORAGE_ACCOUNT_URL`, `ENVIRONMENT=production`, `AUTH_ENABLED=true`, `ENTRA_TENANT_ID`,

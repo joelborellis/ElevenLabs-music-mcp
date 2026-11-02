@@ -5,6 +5,7 @@ import {
   Button,
   Caption1,
   Input,
+  Spinner,
   Subtitle1,
   Text,
   Tooltip,
@@ -12,26 +13,37 @@ import {
 } from "@fluentui/react-components";
 import {
   ArrowDownload20Regular,
+  ChevronDown12Regular,
   FullScreenMaximize20Regular,
   FullScreenMinimize20Regular,
   Link20Regular,
   Pause24Filled,
   Play24Filled,
+  Sparkle16Regular,
 } from "@fluentui/react-icons";
 import type { App } from "@modelcontextprotocol/ext-apps/react";
 import { formatTime, parseSections, sectionAt } from "../lib/sections";
-import type { Song } from "../types";
+import { styleMessage, variationsFor } from "../lib/variations";
+import type { Finetune, Song } from "../types";
 import { useAudio } from "../useAudio";
 import { SectionTimeline } from "./SectionTimeline";
+import { StyleStrip } from "./StyleStrip";
 
 interface Props {
   song: Song;
   app: App | null;
   displayMode: string;
+  /** Sends a variation request to the conversation; null when the host can't (chips hidden). */
+  onVariation: ((text: string) => void) | null;
+  /** Style strip for "Different style": null = closed, [] = loading, list = open. */
+  styles: Finetune[] | null;
+  onOpenStyles: () => void;
+  onTaste: (style: Finetune) => Promise<string | null>;
+  dark: boolean;
 }
 
-/** The Listen state: structure-as-scrub-bar player, lyrics, download. */
-export function Player({ song, app, displayMode }: Props) {
+/** The Listen state: structure-as-scrub-bar player, lyrics, download, one-tap variations. */
+export function Player({ song, app, displayMode, onVariation, styles, onOpenStyles, onTaste, dark }: Props) {
   const sections = useMemo(() => parseSections(song.composition_plan), [song.composition_plan]);
   const { playing, timeMs, durationMs, error, toggle, seek } = useAudio(song.audio_url);
   const [copied, setCopied] = useState(false);
@@ -45,6 +57,7 @@ export function Player({ song, app, displayMode }: Props) {
   const current = sectionAt(sections, timeMs);
   const hasLyrics = sections.some((s) => s.lyrics);
   const fullscreen = displayMode === "fullscreen";
+  const variations = useMemo(() => variationsFor(song), [song]);
 
   const download = () => {
     if (!song.audio_url) return;
@@ -180,6 +193,56 @@ export function Player({ song, app, displayMode }: Props) {
           <Input readOnly value={song.audio_url} style={{ flex: 1, minWidth: 200 }} onFocus={(e) => e.target.select()} />
         )}
       </div>
+
+      {/* Variations: one-line follow-ups to Copilot, which rewrites the brief and renders a new take. */}
+      {onVariation && (
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          <Caption1 style={{ color: tokens.colorNeutralForeground3 }}>Try a variation</Caption1>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
+            {variations.map((v) => (
+              <Button
+                key={v.label}
+                size="small"
+                shape="circular"
+                appearance="subtle"
+                icon={<Sparkle16Regular />}
+                onClick={() => onVariation(v.message)}
+              >
+                {v.label}
+              </Button>
+            ))}
+            <Button
+              size="small"
+              shape="circular"
+              appearance={styles ? "primary" : "subtle"}
+              icon={<ChevronDown12Regular />}
+              iconPosition="after"
+              onClick={onOpenStyles}
+            >
+              Different style
+            </Button>
+          </div>
+          {styles && (
+            <div style={{ padding: 12, borderRadius: 8, background: tokens.colorNeutralBackground2 }}>
+              {styles.length === 0 ? (
+                <Spinner size="tiny" label="Loading styles…" />
+              ) : (
+                <StyleStrip
+                  styles={styles}
+                  dark={dark}
+                  selectedId={song.finetune_id}
+                  onTaste={onTaste}
+                  onPick={(style) => {
+                    onOpenStyles(); // close the strip
+                    onVariation(styleMessage(song, style.name ?? style.id));
+                  }}
+                  pickLabel="Try this"
+                />
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

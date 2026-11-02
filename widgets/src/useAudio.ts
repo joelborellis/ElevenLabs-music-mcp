@@ -1,10 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 
+/** The element playing right now, card-wide: starting one player pauses the others (A/B listening). */
+let nowPlaying: HTMLAudioElement | null = null;
+
 /**
  * Minimal audio controller around an HTMLAudioElement that never enters the
- * DOM (we draw our own timeline). Recreated whenever `src` changes.
+ * DOM (we draw our own timeline). Recreated whenever `src` changes. Only one
+ * instance plays at a time.
  */
-export function useAudio(src: string | null | undefined) {
+export function useAudio(src: string | null | undefined, { autoPlay = false }: { autoPlay?: boolean } = {}) {
   const ref = useRef<HTMLAudioElement | null>(null);
   const [playing, setPlaying] = useState(false);
   const [timeMs, setTimeMs] = useState(0);
@@ -24,7 +28,11 @@ export function useAudio(src: string | null | undefined) {
 
     const onTime = () => setTimeMs(audio.currentTime * 1000);
     const onMeta = () => setDurationMs(Number.isFinite(audio.duration) ? audio.duration * 1000 : 0);
-    const onPlay = () => setPlaying(true);
+    const onPlay = () => {
+      if (nowPlaying && nowPlaying !== audio) nowPlaying.pause();
+      nowPlaying = audio;
+      setPlaying(true);
+    };
     const onPause = () => setPlaying(false);
     const onEnded = () => {
       setPlaying(false);
@@ -39,9 +47,12 @@ export function useAudio(src: string | null | undefined) {
     audio.addEventListener("pause", onPause);
     audio.addEventListener("ended", onEnded);
     audio.addEventListener("error", onError);
+    // Only after a tap (the caller sets src in a click handler), so the host allows it.
+    if (autoPlay) audio.play().catch(() => setError("Playback was blocked. Tap play again."));
 
     return () => {
       audio.pause();
+      if (nowPlaying === audio) nowPlaying = null;
       audio.removeEventListener("timeupdate", onTime);
       audio.removeEventListener("loadedmetadata", onMeta);
       audio.removeEventListener("durationchange", onMeta);
@@ -51,7 +62,7 @@ export function useAudio(src: string | null | undefined) {
       audio.removeEventListener("error", onError);
       ref.current = null;
     };
-  }, [src]);
+  }, [src, autoPlay]);
 
   const toggle = useCallback(() => {
     const audio = ref.current;

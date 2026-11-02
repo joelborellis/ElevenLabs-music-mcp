@@ -14,7 +14,7 @@ import {
   tokens,
 } from "@fluentui/react-components";
 import { ChevronDown12Regular, MusicNote2Play20Filled, Sparkle16Regular } from "@fluentui/react-icons";
-import { directionLines, USES, useLabel } from "../lib/blueprints";
+import { alwaysInstrumental, directionLines, USES, useLabel } from "../lib/blueprints";
 import type { BriefData, Finetune } from "../types";
 import { StyleStrip } from "./StyleStrip";
 
@@ -49,7 +49,10 @@ const NUDGES = ["More playful", "More cinematic", "More emotional", "Shorter and
 export function Brief({ data, busy, onRegenerate, onCompose, onNudge, styles, onOpenStyles, onTaste, dark }: Props) {
   const [showAll, setShowAll] = useState(false);
   const input = data.input_parameters ?? {};
-  const instrumental = input.instrumental_only === true;
+  // Background beds, game loops and calm tracks are instrumental by definition:
+  // the prompt ignores the flag for them, so the chip shows a fact, not a choice.
+  const fixedInstrumental = alwaysInstrumental(input.project_blueprint);
+  const instrumental = fixedInstrumental || input.instrumental_only === true;
   const lines = directionLines(data.prompt, 3);
   const disabled = busy !== null;
 
@@ -88,14 +91,22 @@ export function Brief({ data, busy, onRegenerate, onCompose, onNudge, styles, on
           </MenuPopover>
         </Menu>
 
-        <Button
-          size="small"
-          shape="circular"
-          disabled={disabled}
-          onClick={() => onRegenerate({ instrumental_only: !instrumental })}
-        >
-          Vocals: {instrumental ? "instrumental" : "sung"}
-        </Button>
+        {fixedInstrumental ? (
+          <Tooltip content={`${useLabel(input.project_blueprint)} is always instrumental`} relationship="description">
+            <Button size="small" shape="circular" appearance="outline" disabledFocusable>
+              Vocals: instrumental
+            </Button>
+          </Tooltip>
+        ) : (
+          <Button
+            size="small"
+            shape="circular"
+            disabled={disabled}
+            onClick={() => onRegenerate({ instrumental_only: !instrumental })}
+          >
+            Vocals: {instrumental ? "instrumental" : "sung"}
+          </Button>
+        )}
 
         <Tooltip content="Hear other styles and switch" relationship="description">
           <Button

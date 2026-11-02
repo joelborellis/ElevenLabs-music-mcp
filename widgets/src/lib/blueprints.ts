@@ -13,6 +13,16 @@ export function useLabel(id: string | undefined): string {
   return USES.find((u) => u.id === id)?.label ?? "Song";
 }
 
+/**
+ * Blueprints whose vocal_mode is "Instrumental only" (prompts/generate_music_prompt.md):
+ * the prompt ignores instrumental_only for these, so the card shows vocals as fixed.
+ */
+const ALWAYS_INSTRUMENTAL = new Set<string>(["podcast_voiceover_loop", "video_game_action_loop", "meditation_sleep"]);
+
+export function alwaysInstrumental(blueprint: string | undefined): boolean {
+  return blueprint !== undefined && ALWAYS_INSTRUMENTAL.has(blueprint);
+}
+
 /** Server render stages → words a producer would use. */
 const STAGE_WORDS: Record<string, string> = {
   validating: "Reading the brief",

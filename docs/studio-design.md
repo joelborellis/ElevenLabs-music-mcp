@@ -30,12 +30,12 @@ card** rather than a widget per tool · cheap 8-second style tastes, rendered on
 
 | `kind` | Component | What it does | Status |
 |---|---|---|---|
-| `brief` | `Brief.tsx` | Title, description, "For:" line; **Use** / **Vocals** / **Style** flip-chips (re-run `generate_music_prompt` from the card); direction preview; **Compose** (`start_render` from the card); nudge chips → `sendMessage` | done |
+| `brief` | `Brief.tsx` | Title, description, "For:" line; **Use** / **Vocals** / **Style** flip-chips (re-run `generate_music_prompt` from the card; Vocals is fixed to "instrumental" for the always-instrumental uses); direction preview; **Compose** (`start_render` from the card); nudge chips → `sendMessage` | done |
 | `styles` | `StyleStrip.tsx` | One mood card per finetune (hue from genre family, `lib/styleColor.ts`); **Hear a taste** → `preview_style`; **Use this**; **Surprise me**. Inline inside the Brief, or standalone from `list_finetunes` (pick → `sendMessage("Use the "X" style…")`) | done |
 | `composing` | `Composing.tsx` | Section timeline from `generate_composition_plan` filling with progress; stage words ("Performing…"); polls `get_render_status` every 3 s | done |
-| `song` | `Player.tsx` | Section timeline as the scrub bar (`lib/sections.ts`), current-section sound tags, lyrics panel, Download (`&download=1`), Copy link, full-screen toggle | done |
+| `song` | `Player.tsx` | Section timeline as the scrub bar (`lib/sections.ts`), current-section sound tags, lyrics panel, Download (`&download=1`), Copy link, full-screen toggle; **variation chips** (`lib/variations.ts`) and **Different style** (inline Style strip) → `sendMessage`; **Versions rail** below (inline) or beside it (full screen) when the song has more than one take | done (Phase 4) |
 | `failed` | inline in `Studio.tsx` | Error + **Try again** | done |
-| `versions` | — | Versions rail (placeholder: count only) | **Phase 4** |
+| `versions` | `Versions.tsx` | Every take, newest first (`lib/versions.ts`): mini player with a compact section timeline, the one-line difference from the previous take ("instrumental", "shorter, 0:30", "Rock style"), **Open** (→ `get_render_status`, shows it in the player), **Use this one** → `sendMessage('Use "<title>" (<difference>) as the song for <about>.')`. Standalone from `list_renders`, or as the rail inside Listen | done (Phase 4) |
 | `preview` | — | Not a state: `preview_style`'s audio URL, consumed by the Style strip | done |
 
 Host facts learned in Copilot (2026-11): tools without `annotations.readOnlyHint: true` get a
@@ -44,27 +44,45 @@ and their first sentence is written for the user); Copilot renders only the **la
 in a turn (the agent instructions therefore stop after the brief); `sendMessage` from the card works;
 `requestDisplayMode("fullscreen")` works; the widget template is fetched without a user token.
 
-## Phase 4 — what's left (not started)
+## Phase 4 — built 2026-11-02, awaiting verification in Copilot
 
-1. **Variation chips on the player**: *Shorter* · *Instrumental* · *More energy* · *Different style* ·
-   *Extend to 60s*. Each sends a one-line follow-up via `sendMessage` (e.g. `Make "<title>" instrumental,
-   keep everything else the same.`); Copilot rewrites the brief and starts a new render; the new song
-   lands in the card. Server: nothing new (the agent instructions already describe variations).
-2. **Versions rail** (`kind: versions`, tool `list_renders` already returns `audio_url`, `about`,
-   `description`): newest first, mini player per row (reuse `useAudio` + a compact `SectionTimeline`),
-   the one-line difference ("instrumental", "30s"), **Use this one** → `sendMessage("Use "<title>" as the
-   song for …")`. Shown standalone when Copilot calls `list_renders`, and as a rail inside Listen when
-   there is more than one song for the same `about`.
-3. **Full-screen layout**: two columns in `displayMode === "fullscreen"` — player + lyrics left,
-   Versions rail right (A/B listening); larger timeline (already 44 px).
-4. **Vocals chip**: hide it (or show "instrumental" fixed) for `podcast_voiceover_loop`,
-   `video_game_action_loop` and `meditation_sleep` — those blueprints are instrumental by definition,
-   so the chip currently offers a choice the prompt can't honour.
-5. **Agent polish** (`keepsong-copilot/appPackage/instruction.txt`): variations phrasing, and a line
-   telling Copilot that a "Use "<title>" as the song" message is the user's pick from the Versions rail.
-6. **Widget-host CORS**: check the card's browser console in prod to see whether Copilot's origin is
-   `…usercontent.microsoft` or `…microsoft.com`, and drop the other from `CORS_ALLOWED_ORIGINS`
-   (both are set for dev and prod).
+1. **Variation chips on the player** (`lib/variations.ts`): *Shorter* (songs over 20 s) · *Instrumental*
+   (sung songs only) · *More energy* · *Extend to 60s* (songs under 55 s) · *Different style* (opens the
+   Style strip; a pick sends `Make a version of "<title>" in the "<style>" style, keep everything else the
+   same.`). Each sends one line via `sendMessage`; Copilot writes the brief with that change and starts the
+   render in the same turn (agent instructions, step 5). Server: nothing new.
+2. **Versions rail** (`components/Versions.tsx`, `lib/versions.ts`). Takes belong together when their
+   "For:" line matches, else their title (case and punctuation ignored). `about` lives only in server
+   memory, so after a restart the **title** is what links takes; the agent instructions tell Copilot to
+   keep the title and `about` unchanged for a variation. Shown standalone for `list_renders`, and inside
+   Listen when the song has more than one take (the card calls `list_renders` quietly once per song).
+3. **Full-screen layout**: player + lyrics left, Versions rail right (`auto-fit` grid, so a narrow
+   full screen stacks); max width 1280 px. `useAudio` is card-wide exclusive: playing a take pauses the
+   big player and vice versa, which is what makes A/B listening work.
+4. **Vocals chip**: fixed "Vocals: instrumental" (with a tooltip) for `podcast_voiceover_loop`,
+   `video_game_action_loop` and `meditation_sleep`; Compose sends `force_instrumental` for those too.
+5. **Agent polish** (`keepsong-copilot/appPackage/instruction.txt`): step 5 rewritten for the variation
+   lines (same turn, same blueprint/finetune/narrative, keep title + about, `music_length_ms` for length);
+   new step 6 for browsing versions and for the `Use "<title>" … as the song` pick. New conversation
+   starter "Our songs so far". **Re-provision both agents** (dev and prod) to pick these up.
+6. **Widget-host CORS**: the server now logs `CORS: first request from origin <origin> (allowed | not in
+   CORS_ALLOWED_ORIGINS)` once per distinct origin (`src/http/cors.ts`). After the next deploy, read it
+   with `az containerapp logs show -n keepsong-mcp -g ElevenLabsMusic --tail 200` and drop the unused
+   entry. If the line never appears, the card makes no direct browser requests to the server (tool calls
+   go through the host, audio loads without CORS) and either entry can go.
+   **Finding (2026-11-02, dev tunnel inspector):** no request carries an `Origin` header. The card's tool
+   calls reach the server from Copilot's backend, and audio loads through a plain `Audio` element (no
+   `crossOrigin`), so CORS is not exercised today. To pick the entry to keep, read the card iframe's
+   `src` host in the browser dev tools; it only starts to matter if the card ever uses `fetch` or Web
+   Audio analysis (which needs `crossOrigin` audio) against this server.
+   **Settled (2026-11-02):** the card's iframe in Copilot is served from `https://widget-renderer.usercontent.microsoft`,
+   so the suffix is `.usercontent.microsoft`. Dev `.env` already lists only that form; drop the
+   `.usercontent.microsoft.com` entry from prod's `CORS_ALLOWED_ORIGINS` (`az containerapp update --set-env-vars`).
+
+**To verify in Copilot (dev agent):** make a song → tap *Instrumental* → Confirm → the new take
+composes and lands with a two-row Versions rail → play each row (the other pauses) → full screen shows
+the rail beside the player → *Use this one* → Copilot shows that take and confirms it. Also: a background
+bed brief shows the fixed Vocals chip; "Show me the songs we've made so far" shows the standalone list.
 
 Nice-to-haves after that: light/dark theme pass (Fluent tokens are used throughout; verify in Copilot's
 dark theme), a `plan` state (section timeline for `generate_composition_plan` called on its own), and
