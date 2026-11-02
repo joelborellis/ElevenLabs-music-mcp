@@ -346,8 +346,9 @@ export function registerTools(server: McpServer, deps: ToolDeps): void {
     },
     async (args) => {
       try {
-        // Over-fetch a little: previews and in-flight rows are filtered out below.
-        const rows = (await deps.repo.listRenders(args.limit * 2))
+        // Over-fetch generously: style previews and in-flight rows are filtered out
+        // below, and a run of recent previews must not hide the user's songs.
+        const rows = (await deps.repo.listRenders(args.limit + 100))
           .filter((row) => row.status === "complete" && !row.title?.startsWith(PREVIEW_TITLE_PREFIX))
           .slice(0, args.limit);
         if (rows.some((row) => row.finetune_id && !finetuneName(row.finetune_id))) {

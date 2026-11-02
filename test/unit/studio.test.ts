@@ -158,14 +158,15 @@ describe("Keepsong Studio wiring", () => {
     await client.close();
   });
 
-  it("list_renders hides style previews and in-flight rows", async () => {
+  it("list_renders hides style previews and in-flight rows, even when previews are newest", async () => {
     const repo = fakeRepo([
-      completeRow({ id: "song", title: "Real song" }),
-      completeRow({ id: "prev", title: "preview:ft_indie" }),
-      completeRow({ id: "wip", status: "processing" }),
+      completeRow({ id: "song", title: "Real song", created_at: new Date("2026-11-01T00:00:00Z") }),
+      completeRow({ id: "prev1", title: "preview:ft_indie", created_at: new Date("2026-11-02T00:00:00Z") }),
+      completeRow({ id: "prev2", title: "preview:ft_rock", created_at: new Date("2026-11-02T01:00:00Z") }),
+      completeRow({ id: "wip", status: "processing", created_at: new Date("2026-11-02T02:00:00Z") }),
     ]);
     const client = await connect({ config, storage: fakeStorage(), repo });
-    const result = (await client.callTool({ name: "list_renders", arguments: {} })) as ToolResult;
+    const result = (await client.callTool({ name: "list_renders", arguments: { limit: 1 } })) as ToolResult;
     const renders = result.structuredContent?.renders as Array<{ id: string }>;
     expect(renders.map((r) => r.id)).toEqual(["song"]);
     await client.close();

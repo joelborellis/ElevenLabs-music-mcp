@@ -25,6 +25,8 @@ $Deploy = @{
 # Vite's "✓ built" line (UnicodeEncodeError), abandoning the log stream mid-build. UTF-8 mode fixes it.
 $env:PYTHONUTF8 = "1"
 $env:PYTHONIOENCODING = "utf-8"
+# az writes progress and warnings to stderr; never let those become terminating errors.
+$PSNativeCommandUseErrorActionPreference = $false
 
 function Use-DeploySubscription {
     az account set --subscription $Deploy.Subscription | Out-Null
@@ -50,7 +52,11 @@ function Get-AppFqdn {
 #>
 function New-BuildContext {
     param([switch]$IncludeUncommitted)
-    $ctx = Join-Path ([IO.Path]::GetTempPath()) "keepsong-mcp-build-$([guid]::NewGuid().ToString('n'))"
+    # Not under the user profile: az.cmd is a batch file and breaks on paths with
+    # parentheses or spaces (e.g. C:\Users\Name(org)\...). The repo's parent folder is safe.
+    $root = if ($env:KEEPSONG_BUILD_ROOT) { $env:KEEPSONG_BUILD_ROOT } else { Resolve-Path "$PSScriptRoot/../.." }
+    $ctx = Join-Path $root "keepsong-mcp-build-$([guid]::NewGuid().ToString('n'))"
+    if ($ctx -match '[()\s]') { throw "Build context path '$ctx' contains parentheses or spaces; set KEEPSONG_BUILD_ROOT to a plain path (e.g. C:\build)." }
     New-Item -ItemType Directory -Path $ctx | Out-Null
     $files = if ($IncludeUncommitted) { git ls-files -co --exclude-standard } else { git ls-files }
     foreach ($rel in $files) {
@@ -67,20 +73,27 @@ function Invoke-AcrBuild {
     $ctx = New-BuildContext -IncludeUncommitted:$IncludeUncommitted
     try {
         Write-Host "==> Building $($Deploy.RegistryServer)/$($Deploy.Image):$Tag in ACR (cloud build from $ctx)"
-        az acr build --registry $Deploy.Registry --image "$($Deploy.Image):$Tag" --file Dockerfile $ctx
-        if ($LASTEXITCODE -ne 0) {
+        # Tee the stream so we can pick up the run id ("Queued a build with ID: xyz").
+        $output = az acr build --registry $Deploy.Registry --image "$($Deploy.Image):$Tag" --file Dockerfile $ctx 2>&1 | ForEach-Object { Write-Host $_; "$_" }
+        $exit = $LASTEXITCODE
+        $runId = ($output | Select-String -Pattern "Queued a build with ID:\s*(\S+)" | Select-Object -First 1).Matches.Groups[1].Value
+        if (-not $runId) { throw "az acr build did not start a run (see the output above)." }
+        if ($exit -ne 0) {
             # The CLI's log stream can die (console encoding) while the build carries on in
-            # ACR, so the exit code alone isn't the verdict — ask ACR for the run's status.
-            Write-Host "==> Log stream ended early; checking the run status in ACR"
+            # ACR, so the exit code alone isn't the verdict — follow THIS run to its end.
+            Write-Host "==> Log stream ended early; following run $runId in ACR"
             do {
                 Start-Sleep -Seconds 10
-                $run = az acr task list-runs -r $Deploy.Registry --top 1 --query "[0].{id:runId, status:status}" -o json | ConvertFrom-Json
-                Write-Host "   run $($run.id): $($run.status)"
-            } while ($run.status -in @("Queued", "Running", "Started"))
-            if ($run.status -ne "Succeeded") {
-                throw "ACR build run $($run.id) ended with status $($run.status). Logs: az acr task logs -r $($Deploy.Registry) --run-id $($run.id)"
+                $status = (az acr task show-run -r $Deploy.Registry --run-id $runId --query status -o tsv).Trim()
+                Write-Host "   run ${runId}: $status"
+            } while ($status -in @("Queued", "Running", "Started"))
+            if ($status -ne "Succeeded") {
+                throw "ACR build run $runId ended with status $status. Logs: az acr task logs -r $($Deploy.Registry) --run-id $runId"
             }
         }
+        # Belt and braces: the tag must exist before anything tries to pull it.
+        az acr repository show -n $Deploy.Registry --image "$($Deploy.Image):$Tag" --query digest -o tsv | Out-Null
+        if ($LASTEXITCODE -ne 0) { throw "Image $($Deploy.Image):$Tag is not in the registry after the build." }
     } finally {
         Remove-Item -LiteralPath $ctx -Recurse -Force -ErrorAction SilentlyContinue
     }

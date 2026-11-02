@@ -35,8 +35,14 @@ $image = "$($Deploy.RegistryServer)/$($Deploy.Image):$sha"
 # Uncommitted files are included here so the first run works before the deploy files are committed.
 Invoke-AcrBuild -Tag $sha -IncludeUncommitted
 
-$exists = az containerapp show -g $Deploy.ResourceGroup -n $Deploy.App --query name -o tsv 2>$null
-if (-not $exists) {
+$state = az containerapp show -g $Deploy.ResourceGroup -n $Deploy.App --query "properties.provisioningState" -o tsv 2>$null
+if ($state -and $state.Trim() -eq "Failed") {
+    # A failed create (e.g. image missing) leaves an app with no ingress; start over.
+    Write-Host "==> Removing previous failed container app before recreating it"
+    az containerapp delete -g $Deploy.ResourceGroup -n $Deploy.App --yes | Out-Null
+    $state = $null
+}
+if (-not $state) {
     Write-Host "==> Creating container app $($Deploy.App)"
     # Admin credentials for the very first pull; switched to the managed identity below
     # once AcrPull is granted (the identity doesn't exist until the app does).
