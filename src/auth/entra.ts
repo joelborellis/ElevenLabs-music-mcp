@@ -39,6 +39,7 @@ export function createEntraAuthMiddleware(config: AppConfig): RequestHandler {
     `https://sts.windows.net/${tenantId}/`,
   ];
   const requiredScope = config.entraRequiredScope;
+  const allowedAppRole = config.entraAllowedAppRole;
   const realm = config.appName;
 
   return (req: Request, res: Response, next: NextFunction) => {
@@ -59,8 +60,11 @@ export function createEntraAuthMiddleware(config: AppConfig): RequestHandler {
           reject(res, 401, `Bearer realm="${realm}", error="invalid_token"`, "Token has no oid claim");
           return;
         }
-        // App-only tokens carry `roles`, not `scp`, so they fail here too.
-        if (requiredScope && !auth.scopes.includes(requiredScope)) {
+        // App-only tokens carry `roles`, not `scp`: they pass only with the
+        // configured app role (ENTRA_ALLOWED_APP_ROLE), otherwise they fail here.
+        const roles = Array.isArray(payload.roles) ? payload.roles : [];
+        const hasAppRole = allowedAppRole !== undefined && roles.includes(allowedAppRole);
+        if (requiredScope && !auth.scopes.includes(requiredScope) && !hasAppRole) {
           reject(
             res,
             403,

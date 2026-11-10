@@ -38,6 +38,11 @@ export interface AppConfig {
   entraAudiences: string[];
   /** Delegated scope every token must carry in `scp`; undefined disables the check. */
   entraRequiredScope: string | undefined;
+  /**
+   * App role that lets an app-only token (no `scp`, e.g. a Foundry agent identity)
+   * through in place of the delegated scope; undefined rejects app-only tokens.
+   */
+  entraAllowedAppRole: string | undefined;
 
   // Exact origins allowed cross-origin (e.g. the Copilot widget host).
   corsAllowedOrigins: string[];
@@ -114,6 +119,7 @@ export function loadConfig(env: NodeJS.ProcessEnv = process.env): AppConfig {
     entraTenantId: env.ENTRA_TENANT_ID || undefined,
     entraAudiences: parseList(env.ENTRA_AUDIENCE),
     entraRequiredScope: parseScope(env.ENTRA_REQUIRED_SCOPE),
+    entraAllowedAppRole: env.ENTRA_ALLOWED_APP_ROLE?.trim() || undefined,
     corsAllowedOrigins: parseList(env.CORS_ALLOWED_ORIGINS),
     publicBaseUrl: (env.PUBLIC_BASE_URL || `http://localhost:${port}`).replace(/\/+$/, ""),
     mediaSigningKey: env.MEDIA_SIGNING_KEY || "",

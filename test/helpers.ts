@@ -21,6 +21,7 @@ export function makeTestConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     entraTenantId: undefined,
     entraAudiences: [],
     entraRequiredScope: "access_as_user",
+    entraAllowedAppRole: undefined,
     corsAllowedOrigins: [],
     publicBaseUrl: "http://localhost:3000",
     mediaSigningKey: "test-signing-key",

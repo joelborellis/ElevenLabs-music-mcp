@@ -125,6 +125,26 @@ describe("createEntraAuthMiddleware", () => {
     expect(next).not.toHaveBeenCalled();
   });
 
+  it("accepts an app-only token carrying the allowed app role", async () => {
+    mockedVerify.mockResolvedValue({ payload: { oid: "agent-oid", roles: ["Mcp.Invoke"] } } as never);
+    const { res, next } = await call(
+      { authorization: "Bearer app-token" },
+      { ...config, entraAllowedAppRole: "Mcp.Invoke" },
+    );
+    expect(next).toHaveBeenCalledOnce();
+    expect(res.locals.auth).toMatchObject({ oid: "agent-oid", scopes: [] });
+  });
+
+  it("rejects an app-only token with a different role even when a role is allowed", async () => {
+    mockedVerify.mockResolvedValue({ payload: { oid: "app-oid", roles: ["Tasks.Read"] } } as never);
+    const { res, next } = await call(
+      { authorization: "Bearer app-token" },
+      { ...config, entraAllowedAppRole: "Mcp.Invoke" },
+    );
+    expect(res.statusCode).toBe(403);
+    expect(next).not.toHaveBeenCalled();
+  });
+
   it("skips the scope check when no scope is required", async () => {
     mockedVerify.mockResolvedValue({ payload: { oid: "app-oid" } } as never);
     const { next } = await call(
